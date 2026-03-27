@@ -1,0 +1,19 @@
+type: object
+required:
+  - name
+  - rules
+
+properties:
+  name:
+    type: string
+
+  rules:
+    type: array
+    items:
+      type: object
+      properties:
+        condition:
+          type: string
+        action:
+          type: string
+          enum: [allow, deny, warn]

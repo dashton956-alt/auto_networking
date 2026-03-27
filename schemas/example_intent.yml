@@ -1,0 +1,19 @@
+service: payments
+environment: prod
+
+objectives:
+  latency_ms: 50
+  availability_percent: 99.99
+
+constraints:
+  region: EU
+  encryption: true
+  allowed_zones:
+    - zone-a
+    - zone-b
+
+policies:
+  - zero_trust
+  - pci_compliant
+
+priority: critical

@@ -1,0 +1,20 @@
+type: object
+required:
+  - action_type
+
+properties:
+  action_type:
+    type: string
+    enum:
+      - reroute_traffic
+      - apply_qos
+      - scale_bandwidth
+      - isolate_segment
+
+  parameters:
+    type: object
+    additionalProperties: true
+
+  risk_level:
+    type: string
+    enum: [low, medium, high]
