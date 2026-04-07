@@ -1943,6 +1943,10 @@ git commit -m "docs: add ANIF-840 AI Security Overview"
 **Task 57 — ANIF-841 AI Threat Model**
 - File: `docs/840-ai-security/ANIF-841_AI_Threat_Model.md`
 - Key content: Full threat catalogue in three categories. External: prompt injection, adversarial inputs, model extraction, token DoS, supply chain compromise. Internal: insider abuse, training data manipulation, audit tampering, council manipulation. AI-specific: hallucination exploitation (attacker crafts inputs designed to trigger hallucination in predictable directions), confidence manipulation, context poisoning, trust score gaming, strike evasion. For each threat: attack vector, impact, mitigating control (ANIF document reference).
+- **Additional threats to include (added 2026-04-07):**
+  - Session hijacking / token theft: attacker steals an authenticated agent session token to impersonate the agent on the bus or at the API gateway. Mitigating control: ANIF-843 (cryptographic identity per request, no session-based trust — stolen token is useless without the agent's certificate).
+  - Bus spoofing: an agent (or compromised process) publishes to a bus it does not have access rights for — e.g., a Tier 1 agent publishing to the Recommendation Bus. Mitigating control: ANIF-844 (cryptographic bus access controls), ANIF-843 (tier boundary enforcement at API gateway).
+  - Replay attacks on the Recommendation Bus: a previously valid recommendation message is re-submitted to trigger a decision that has already been actioned or is no longer valid. Named here in the threat catalogue; mitigating control is ANIF-844 (message nonce and timestamp validation, 30-second replay window). Cross-reference both documents.
 
 **Task 58 — ANIF-842 Prompt Injection & Adversarial Input Security**
 - File: `docs/840-ai-security/ANIF-842_Prompt_Injection_Security.md`
