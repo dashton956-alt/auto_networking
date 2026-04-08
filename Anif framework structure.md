@@ -67,7 +67,13 @@ These are the non-negotiable tenets of the framework. All documents, schemas, an
 | P-02 | Auditability | No action may be taken without a complete, immutable, timestamped audit record. |
 | P-03 | Determinism | Policy evaluation and risk scoring must produce identical outputs for identical inputs. |
 | P-04 | Explainability | Every automated decision must be explainable in human-readable form on demand. |
-| P-05 | Least privilege | Autonomous agents operate with the minimum permissions required for each intent. |
+| P-05 | Least privilege | Autonomous agents operate    What's missing and should be added to ANIF-841:
+    - Session hijacking / token theft (stealing an agent's authenticated session)
+    - Bus spoofing (an agent publishing to a bus it shouldn't have access to)
+    - Replay attacks on the recommendation bus (already in ANIF-844 but not named in the threat model)
+
+    Flag these for the ANIF-841 task when writing the threat catalogue.
+with the minimum permissions required for each intent. |
 | P-06 | Human override | A human operator must always be able to halt, override, or reverse any automated action. |
 | P-07 | Fail safe | On uncertainty or system error, the default posture is to halt and escalate, not to proceed. |
 | P-08 | Transparency | The reasoning chain for every decision must be captured and queryable. |

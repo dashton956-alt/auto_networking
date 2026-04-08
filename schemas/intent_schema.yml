@@ -3,6 +3,11 @@ required:
   - service
   - objectives
   - constraints
+  - priority
+# Note: when environment is "prod", priority MUST be "critical" or "high".
+# This cross-field rule is enforced by the custom validation layer (US-03),
+# not by this schema, because JSON Schema cannot express conditional
+# requirements across sibling fields without AJV custom keywords.
 
 properties:
   service:

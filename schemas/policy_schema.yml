@@ -1,3 +1,34 @@
+# ANIF Policy Schema
+# Version: 0.1.0
+# Defines a single ANIF policy object applied during the policy evaluation
+# stage (POST /check-policy).
+#
+# Condition syntax
+# ----------------
+# Each condition is a colon-delimited triplet:
+#
+#   field_path:operator:value
+#
+# field_path  - Dot-notation path into the intent object.
+#               Example: "intent.environment", "intent.constraints.encryption"
+#
+# operator    - One of the valid operators listed below:
+#               equals          exact string/boolean/number match
+#               not_equals      negated exact match
+#               greater_than    numeric greater-than comparison
+#               less_than       numeric less-than comparison
+#               contains        substring or array membership test
+#               not_contains    negated substring or array membership test
+#               in_list         value is one of a comma-separated list
+#               not_in_list     value is not in a comma-separated list
+#
+# value       - The literal value to compare against. For in_list /
+#               not_in_list, separate multiple values with a pipe (|).
+#               Example: "prod|staging"
+#
+# Multiple conditions within a single rule are AND-ed together.
+# Cross-rule logic follows the `precedence` field for conflict resolution.
+
 type: object
 required:
   - name
@@ -6,14 +37,51 @@ required:
 properties:
   name:
     type: string
+    description: Unique human-readable name for this policy.
+
+  description:
+    type: string
+    description: >
+      Optional free-text description of what this policy enforces and why
+      it exists. Recommended for compliance and security policies.
+
+  precedence:
+    type: string
+    enum: [compliance, security, availability, performance]
+    description: >
+      Policy category used for conflict resolution when two or more policies
+      produce contradictory actions for the same intent.
+      Higher-precedence category wins: compliance > security > availability > performance.
+      When two policies share the same category and conflict, the policy
+      engine raises an escalation rather than choosing silently.
 
   rules:
     type: array
+    description: >
+      Ordered list of rules evaluated against the intent. Rules are
+      evaluated in order; the first matching rule's action is applied
+      unless `precedence` resolution overrides it.
     items:
       type: object
+      required:
+        - condition
+        - action
       properties:
         condition:
           type: string
+          description: >
+            A condition expression using the syntax:
+              field_path:operator:value
+            Valid operators: equals, not_equals, greater_than, less_than,
+            contains, not_contains, in_list, not_in_list.
+            Multiple conditions are separated by " AND ".
+            Example: "intent.environment:equals:prod AND intent.constraints.encryption:equals:false"
+
         action:
           type: string
           enum: [allow, deny, warn]
+          description: >
+            Action to apply when this rule's condition matches.
+            allow: explicitly permit the intent to proceed.
+            deny:  block the intent; adds a failure to policy_result.failures.
+            warn:  flag the intent; adds a warning but does not block.

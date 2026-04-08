@@ -1,0 +1,101 @@
+# ANIF Risk Score Schema
+# Version: 0.1.0
+# Defines the output of the risk and trust scoring stage (POST /score-risk)
+#
+# This schema is normative for US-03. All pipeline stages that consume risk
+# scoring results MUST validate against this schema before acting on the output.
+#
+# Risk and trust scores are computed deterministically from risk factors so
+# that identical inputs always produce identical outputs — enabling auditability
+# and replay testing.
+
+type: object
+required:
+  - risk_score
+  - trust_score
+  - safety_decision
+  - justification
+  - threshold_applied
+
+properties:
+  risk_score:
+    type: integer
+    minimum: 0
+    maximum: 100
+    description: >
+      Aggregate risk score. 0 = no risk, 100 = maximum risk.
+      Computed deterministically from risk factors listed in `justification`.
+      Each factor contributes a fixed number of points; the total is clamped
+      to [0, 100] after summation.
+
+  trust_score:
+    type: integer
+    minimum: 0
+    maximum: 100
+    description: >
+      Aggregate trust score. 0 = no trust, 100 = full trust.
+      Starts at 100 and is reduced by high-stakes priorities and policy
+      failures recorded in `justification`. Clamped to [0, 100].
+
+  safety_decision:
+    type: string
+    enum:
+      - allow
+      - warn
+      - block
+    description: >
+      Safety gate decision derived from `risk_score` and `threshold_applied`.
+      allow: risk_score is below the warn threshold — proceed normally.
+      warn:  risk_score is at or above the warn threshold but below the block
+             threshold — proceed with operator notification.
+      block: risk_score is at or above the block threshold — halt the pipeline
+             and require manual review before continuing.
+
+  justification:
+    type: array
+    description: >
+      Ordered list of risk factors that contributed to the final `risk_score`
+      and `trust_score`. Each entry identifies one factor, how much it
+      contributed, and where it originated in the pipeline input. Consumers
+      MUST preserve the ordering when displaying justification to operators.
+    items:
+      type: object
+      required:
+        - factor
+        - contribution
+        - source
+      properties:
+        factor:
+          type: string
+          description: >
+            Human-readable name of the risk factor.
+            Examples: "prod_environment", "no_encryption", "policy_failure".
+
+        contribution:
+          type: integer
+          description: >
+            Points added to `risk_score` by this factor (positive integer), or
+            points subtracted from `trust_score` (negative integer).
+            A factor MUST NOT simultaneously affect both scores; use separate
+            entries if both scores are impacted.
+
+        source:
+          type: string
+          description: >
+            JSONPath-style reference to where this factor originated in the
+            pipeline input. Enables downstream stages to trace a decision back
+            to the exact field that triggered it.
+            Examples: "intent.environment", "policy_result.failures[0]",
+            "intent.priority".
+
+  threshold_applied:
+    type: string
+    enum:
+      - prod
+      - non_prod
+    description: >
+      Which threshold set was used when deriving `safety_decision` from
+      `risk_score`. Threshold sets are environment-specific to balance
+      operational safety with development velocity.
+      prod:     block >= 70, warn >= 40, allow < 40.
+      non_prod: block >= 85, warn >= 60, allow < 60.
