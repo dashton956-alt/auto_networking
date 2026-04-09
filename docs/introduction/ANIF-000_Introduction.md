@@ -210,9 +210,9 @@ ANIF defines five conformance levels, each building on the previous:
 | L2 | Aligned | ANIF-001–107 satisfied; audit trail in place per ANIF-107 |
 | L3 | Conformant | ANIF-300–407 satisfied; test cases TC-001–005 passed |
 | L4 | Certified | Third-party verified; ANIF-500–503 completed |
-| L5 | AI-Native | ANIF-700–725, ANIF-800–824, ANIF-900–908 implemented and third-party verified |
+| L5 | AI-Native | ANIF-700–725, ANIF-800–824, ANIF-830–839, ANIF-840–849, ANIF-851 (where applicable), ANIF-900–908 implemented and third-party verified |
 
-L5 is the conformance level for organisations that have implemented the full AI governance framework on top of a certified L4 base. L5 cannot be self-declared.
+L5 is the conformance level for organisations that have implemented the full AI framework — ethics, agent architecture, governance, security, compliance, and council — on top of a certified L4 base. L5 cannot be self-declared; it requires external audit with no Critical or Major findings per ANIF-839.
 
 ---
 

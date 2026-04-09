@@ -214,6 +214,8 @@ The following represents the minimum set of ANIF requirements that MUST be imple
 | Testing | ANIF-820 — all five testing types completed for each agent |
 | Disaster recovery | ANIF-819 Level 2 drill completed |
 | Governance | ANIF-830–831 implemented; AI Council chartered (ANIF-900) |
+| Security | ANIF-840–843 implemented; zero trust authentication operational for all agents |
+| Compliance | ANIF-851 assessed; applicable industry constraints identified and documented |
 | Observability | ANIF-806, ANIF-822 implemented |
 
 ---
