@@ -33,7 +33,15 @@ ANIF exchanges structured data between pipeline stages. Every object that crosse
 - Test authors can construct valid and invalid fixtures with confidence.
 - Operators can interpret log and audit data.
 
-### 1.2 Schema Library Location
+### 1.2 Scope
+
+This document specifies the normative YAML schemas for all structured objects exchanged between ANIF pipeline stages. It covers the intent, action, policy, risk score, and audit record schemas.
+
+### 1.3 Out of Scope
+
+Schema authoring guidance for non-ANIF schemas, worked examples using schema instances (see ANIF-601), and implementation guidance (see ANIF-602).
+
+### 1.4 Schema Library Location
 
 All normative YAML schema files reside in `schemas/` at the root of the `anif-prototype/` repository:
 
@@ -47,11 +55,11 @@ anif-prototype/
     └── audit_record_schema.yml   # defined here; must be created
 ```
 
-### 1.3 Schema Authoring Conventions
+### 1.5 Schema Authoring Conventions
 
 All schemas follow JSON Schema Draft 07 semantics expressed in YAML. Required fields are listed explicitly under the `required` key. Enumerations constrain string fields to closed value sets. Numeric fields carry `minimum`/`maximum` constraints where appropriate. Descriptions are embedded as `description` keys in each property.
 
-### 1.4 Scope
+### 1.6 Schemas Covered
 
 This document covers:
 

@@ -1,10 +1,12 @@
 # ANIF Documentation Gap Analysis
 
+> **SUPERSEDED.** This document is obsolete. It was produced on 2026-04-07 before any ANIF-numbered documents were written and incorrectly claims "zero formally structured ANIF-numbered documents exist". The authoritative gap analysis is `ANIF_Gap_Analysis_2026-04-08.md`, which reflects the actual state of the framework (122 documents across 14 series). This file is retained for historical reference only.
+
 | Field | Value |
 |---|---|
 | Document | ANIF Documentation Gap Analysis |
 | Version | 0.1.0 |
-| Status | Draft |
+| Status | **Superseded** — see `ANIF_Gap_Analysis_2026-04-08.md` |
 | Date | 2026-04-07 |
 | Scope | ANIF framework documentation layer (ANIF-000 through ANIF-600) |
 

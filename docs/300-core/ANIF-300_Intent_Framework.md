@@ -98,7 +98,7 @@ The output of the risk/trust engine: one of `allow`, `warn`, or `block`.
 The bounded action selected by the decision engine in response to the intent. One of: `reroute_traffic`, `apply_qos`, `scale_bandwidth`, `isolate_segment`, or null (when action is blocked).
 
 **Governance Mode**
-The operational mode that determines whether an action may proceed autonomously (`auto`), requires human approval (`manual_review`), or is prohibited (`block`).
+The operational mode that determines whether an action may proceed autonomously (`auto`), requires human approval (`manual_review`), is prohibited (`block`), or is referred to the AI Council for structured deliberation (`council_review` — L5 deployments only, see ANIF-900).
 
 **Canonical State**
 The authoritative, merged view of the current network state, as defined in ANIF-307.
@@ -226,7 +226,7 @@ The intent, policy result, and risk record are submitted to `POST /decide`. The 
 
 ### 5.6 Stage 6: Governed
 
-`POST /governance/check` evaluates the decision record against the governance mode gate. If `mode = auto`, execution may proceed immediately. If `mode = manual_review`, an approval ticket is created and execution is gated pending human approval via `POST /governance/approve/{ticket_id}` or `POST /governance/reject/{ticket_id}`. If `mode = block`, the pipeline terminates; no execution occurs.
+`POST /governance/check` evaluates the decision record against the governance mode gate. If `mode = auto`, execution may proceed immediately. If `mode = manual_review`, an approval ticket is created and execution is gated pending human approval via `POST /governance/approve/{ticket_id}` or `POST /governance/reject/{ticket_id}`. If `mode = block`, the pipeline terminates; no execution occurs. If `mode = council_review` (L5 only), the intent is routed to the Runtime Council (ANIF-904) for structured deliberation before any execution decision is made.
 
 **Entry:** Decision record.
 **Exit:** Governance result with approved ticket (if required) or terminal block record.

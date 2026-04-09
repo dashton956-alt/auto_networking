@@ -32,7 +32,7 @@ ANIF-003 defines terms used normatively across the framework. This document adds
 
 Extended terms covering: networking protocols and concepts, telecommunications network domains, cloud infrastructure, and ANIF-specific implementation vocabulary.
 
-### 1.3 Out of scope
+### 1.3 Out of Scope
 
 General IT terms, programming language concepts, and terms already defined in ANIF-003.
 

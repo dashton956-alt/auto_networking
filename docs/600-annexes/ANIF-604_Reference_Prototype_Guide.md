@@ -39,7 +39,7 @@ This guide covers:
 - Extending the prototype (new adapters, new policies)
 - Mapping from code modules to ANIF specification documents
 
-### 1.3 What the prototype is NOT
+### 1.3 Out of Scope
 
 The prototype is explicitly **not**:
 
