@@ -321,6 +321,30 @@ Upon suspension:
 
 ---
 
+## 9. Conformance Requirements
+
+| ID | Requirement |
+|---|---|
+| CR-502-01 | Certification bodies MUST meet the independence and qualification criteria in section 4 before conducting L4 or L5 assessments. |
+| CR-502-02 | Organisations MUST NOT claim a conformance level before the certifier has issued the certificate document. |
+| CR-502-03 | L4 certificates MUST be renewed annually. |
+| CR-502-04 | L5 certificates MUST NOT be issued where the external audit found Critical or Major findings against ANIF conformance requirements. |
+| CR-502-05 | Evidence packages MUST be retained for a minimum of 5 years after the certificate to which they relate has expired. |
+
+---
+
+## 10. Security Considerations
+
+Certification evidence packages contain detailed information about an organisation's implementation, including which controls are present and which are absent. Packages MUST be treated as confidential and MUST NOT be shared with third parties without the organisation's consent. Certifiers MUST implement data handling agreements that prevent misuse of evidence reviewed during assessment.
+
+---
+
+## 11. Operational Considerations
+
+Certification engagements require significant evidence preparation. Organisations SHOULD maintain an evidence repository updated continuously rather than assembling evidence at assessment time. Pre-assessment readiness reviews — informal checks against the evidence requirements in ANIF-501 — reduce the risk of assessment failure due to missing documentation.
+
+---
+
 ## Appendix A: Certification Process Timeline Summary
 
 | Step | Activity                    | Typical duration     | Key output                          |

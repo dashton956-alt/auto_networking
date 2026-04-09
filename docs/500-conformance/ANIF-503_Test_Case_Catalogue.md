@@ -1350,6 +1350,18 @@ An implementation MUST pass all 36 test steps across the five test cases to clai
 
 ---
 
+## 8. Security Considerations
+
+Test case definitions describe implementation requirements in detail. A party with access to ANIF-503 can determine which behaviours are checked and design implementations that pass tests without genuinely satisfying the underlying requirements. Test case implementations SHOULD include additional test variants not documented here to prevent gaming. Test run results MUST be treated as confidential evidence artefacts.
+
+---
+
+## 9. Operational Considerations
+
+Test cases MUST be executed against the same implementation version in a single test run. Running test cases against different versions or configurations produces results that cannot be used as conformance evidence. Test environments MUST replicate the production configuration as closely as possible — tests run against a minimal or simplified environment may not detect conformance failures present in production.
+
+---
+
 ## Appendix A: Test Execution Log Template
 
 For each test step, the executing party MUST record:

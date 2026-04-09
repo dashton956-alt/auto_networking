@@ -199,6 +199,18 @@ The prototype MUST be understood as a reference, not a production requirement. A
 
 ---
 
+## 8. Security Considerations
+
+Conformance documentation discloses an organisation's implementation posture. Conformance claims and evidence packages MUST be protected with access controls equivalent to internal audit records. A fraudulent conformance claim is a governance integrity violation and MUST be reported to the ANIF Working Group where the organisation holds L4 or L5 certification.
+
+---
+
+## 9. Operational Considerations
+
+Conformance assessment is a continuous activity, not a one-time event. Organisations SHOULD treat the conformance requirements in ANIF-501 as operational criteria maintained year-round rather than as a checklist prepared at certification time. Conformance level downgrades (ANIF-501 section 6) are less disruptive when conformance monitoring is embedded in routine operations.
+
+---
+
 ## Appendix A: Examples
 
 ### A.1 Example Conformance Declaration
