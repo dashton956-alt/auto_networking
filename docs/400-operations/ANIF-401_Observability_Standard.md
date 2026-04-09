@@ -307,7 +307,25 @@ Returns the operational health status of the ANIF system.
 
 ---
 
-## 8. Operational Considerations
+## 8. Conformance Requirements
+
+| ID | Requirement |
+|---|---|
+| CR-401-01 | All ANIF pipeline stages MUST produce structured observability events conforming to the event schema defined in this document. |
+| CR-401-02 | Observability event producers MUST NOT emit events that contain credentials, secrets, or raw PII. |
+| CR-401-03 | The `/metrics` and `/health` endpoints MUST be available and respond within 500 milliseconds under normal operating conditions. |
+| CR-401-04 | Trace IDs MUST be propagated across all pipeline stages for end-to-end correlation. |
+| CR-401-05 | Observability data MUST be retained for a minimum of 90 days. |
+
+---
+
+## 9. Security Considerations
+
+Observability data exposes the internal state, decision patterns, and configuration of the ANIF pipeline. An attacker with access to full observability streams can infer governance thresholds, timing windows, and retry behaviour. Observability endpoints MUST require authentication. Detailed pipeline observability data MUST NOT be exposed to unauthenticated clients. Aggregate metrics (such as intent count and latency percentiles) MAY be exposed without authentication where operationally required.
+
+---
+
+## 10. Operational Considerations
 
 - The observability infrastructure MUST be treated as a critical dependency; pipeline processing SHOULD NOT proceed if the audit log is unreachable, to avoid ungoverned execution.
 - Log ingestion latency SHOULD be monitored; records SHOULD appear in the queryable log store within 10 seconds of emission.
