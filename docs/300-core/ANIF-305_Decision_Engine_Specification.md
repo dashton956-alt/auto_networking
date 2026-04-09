@@ -74,7 +74,7 @@ An action drawn exclusively from the four predefined action types: `reroute_traf
 The complete output of the decision engine: a recommended action (or null), a governance mode, a confidence score, a risk level, a reasoning chain, and a rollback plan.
 
 **Governance Mode**
-The operational mode that controls whether execution may proceed autonomously. One of: `auto`, `manual_review`, `block`.
+The operational mode that controls whether execution may proceed autonomously. One of: `auto`, `manual_review`, `block`, or `council_review` (L5 deployments only — see ANIF-900).
 
 **Reasoning Chain**
 An ordered list of decision steps documenting, in sequence, every rule applied by the engine and the rationale for each step. The chain terminates at the final action selection or null output.
@@ -217,7 +217,7 @@ The `/decide` endpoint MUST return a response conforming to the following struct
 | decision_id        | Always           | UUID v4, assigned by the engine.                                    |
 | recommended_action | Always           | `null` when mode is `block`.                                        |
 | confidence_score   | Always           | 0 when mode is `block`.                                             |
-| mode               | Always           | One of `auto`, `manual_review`, `block`.                            |
+| mode               | Always           | One of `auto`, `manual_review`, `block`, `council_review` (L5 only). |
 | reasoning_chain    | Always           | MUST contain one entry per evaluated rule.                          |
 | rollback_plan      | When action ≠ null | REQUIRED for all non-null recommended actions. MUST be null when action is null. |
 | decided_at         | Always           | ISO 8601 timestamp.                                                 |
