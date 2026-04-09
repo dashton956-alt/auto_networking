@@ -32,7 +32,7 @@ This guide is distinct from `CLAUDE_FRAMEWORK_BUILD_GUIDE.md`, which covers cont
 | pytest-asyncio | Current | Async test support for pipeline stage testing |
 | Docker | Current | Agent containerisation (ANIF-845) |
 | docker-compose | Current | Local integration test environment |
-| Redis | 7+ | Intent queue (ANIF-311), message bus |
+| Redis | 7+ | Intent queue (ANIF-300), message bus |
 | PostgreSQL | 15+ | Audit trail (ANIF-107), risk register (ANIF-832) |
 
 ---
@@ -107,7 +107,7 @@ The ANIF intent pipeline has eight stages. Each stage is a module with a defined
 | 5. Ethics Evaluate | IntentModel + GovernanceMode | EthicsResult (pass/flag/block) | ANIF-720–725 | Write ETHICS_EVALUATED |
 | 6. Route | GovernanceMode + EthicsResult | Routing decision | ANIF-301 | Write INTENT_ROUTED |
 | 7. Execute (or queue) | Validated IntentModel | ExecutionResult | ANIF-304–308 | Write EXECUTION_START, EXECUTION_COMPLETE or EXECUTION_FAILED |
-| 8. Close | ExecutionResult | Closed IntentRecord | ANIF-311 | Write INTENT_CLOSED |
+| 8. Close | ExecutionResult | Closed IntentRecord | ANIF-300 | Write INTENT_CLOSED |
 
 **Required API endpoints** (per ANIF-300 series):
 
