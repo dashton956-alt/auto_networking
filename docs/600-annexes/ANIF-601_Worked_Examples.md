@@ -33,7 +33,15 @@ Abstract pipeline descriptions are necessary but not sufficient for implementors
 3. High-risk block — risk score exceeds the block threshold and the pipeline halts.
 4. Policy conflict — two policies contain contradictory rules; conflict resolution is applied.
 
-### 1.2 Conventions Used
+### 1.2 Scope
+
+Worked examples illustrating the intent authoring, policy evaluation, risk scoring, and governance gate stages of the ANIF pipeline. Examples cover all four action types and all three base governance modes.
+
+### 1.3 Out of Scope
+
+Normative requirements (see ANIF-300–308), schema definitions (see ANIF-600), and implementation guidance (see ANIF-602).
+
+### 1.4 Conventions Used
 
 All HTTP examples show the method, path, request body (where applicable), and the full response envelope. Timestamps are fixed for readability. UUIDs are shortened to illustrative values. All responses follow the standard ANIF envelope:
 
@@ -46,7 +54,7 @@ All HTTP examples show the method, path, request body (where applicable), and th
 }
 ```
 
-### 1.3 Pipeline Stage Order
+### 1.5 Pipeline Stage Order
 
 The standard pipeline order is:
 

@@ -28,7 +28,15 @@ This document is the practical implementation guide for the Autonomous Networkin
 
 ANIF specifications describe behaviour in normative terms. This guide translates those specifications into concrete implementation tasks with Python code guidance, test patterns, and integration sequences. The target audience is a software engineering team implementing the ANIF reference prototype or a production derivative.
 
-### 1.2 Technology Stack
+### 1.2 Scope
+
+This guide covers implementation guidance for all ANIF pipeline modules in dependency order, from schema validation through audit service, for organisations building a conformant prototype or production deployment.
+
+### 1.3 Out of Scope
+
+Schema definitions (see ANIF-600), worked intent examples (see ANIF-601), and normative pipeline requirements (see ANIF-300–308). Production deployment configuration for specific vendors is out of scope.
+
+### 1.4 Technology Stack
 
 | Component       | Technology                     |
 |-----------------|--------------------------------|
@@ -41,7 +49,7 @@ ANIF specifications describe behaviour in normative terms. This guide translates
 | Linting         | ruff                           |
 | Type checking   | mypy (strict)                  |
 
-### 1.3 Document Scope
+### 1.5 Implementation Module Order
 
 This guide covers modules in implementation order:
 
