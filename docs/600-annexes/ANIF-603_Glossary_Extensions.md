@@ -12,7 +12,7 @@
 | Created      | 2026-04-07                                         |
 | Last updated | 2026-04-07                                         |
 | Replaces     | N/A                                                |
-| Related docs | ANIF-003, ANIF-300, ANIF-400                       |
+| Related docs | ANIF-003, ANIF-300, ANIF-400, ANIF-700, ANIF-800, ANIF-830, ANIF-840, ANIF-900 |
 
 ---
 
@@ -143,6 +143,30 @@ Engineers and architects implementing ANIF in networking, telco, or cloud enviro
 | Trace ID | A UUID assigned to each API request and propagated through all pipeline stages and log entries for end-to-end correlation |
 | Write-Before-Return | The ANIF requirement that audit records MUST be written and confirmed before the API response is returned to the caller |
 | Bounded Action Selection | The constraint that the decision engine MUST only select from the 4 predefined action types; free-form action generation is prohibited |
+
+---
+
+### 3.5 AI Series Terms (ANIF-700–908)
+
+Terms introduced by the AI Ethics, AI Agent Architecture, AI Governance, AI Security, and AI Council series. In the event of conflict with section 3.4 terms, these definitions take precedence for AI series documents.
+
+| Term | Definition | Defined In |
+|---|---|---|
+| **Agent Manifest** | A structured declaration attached to every agent describing its identity, tier assignment, permitted action types, declared capabilities, trust model fields, and LLM configuration (where applicable). The manifest is the primary input to Build-Time Council review. | ANIF-802 |
+| **Agent Tier** | One of four operational levels (Tier 0–3) that classifies an agent by its function and action authority. Tier 0: coordination. Tier 1: monitoring. Tier 2: analysis and recommendation. Tier 3: autonomous execution. | ANIF-800, ANIF-801 |
+| **Build-Time Council** | The AI Council type that convenes before any agent deployment, model version change, or capability expansion. Requires consensus from all veto seats. | ANIF-903 |
+| **Council Review** | The fourth governance mode (`council_review`), available in L5 deployments, in which an intent is referred to the Runtime Council for structured deliberation rather than to automated execution or single human approval. | ANIF-900, ANIF-904 |
+| **Deterministic Shadow** | A rule-based component that runs in parallel with every LLM agent and computes the same output using deterministic logic. If the LLM and shadow outputs diverge beyond tolerance, the LLM output is suppressed. Required for all LLM agents. | ANIF-807, ANIF-723 |
+| **Episodic Memory** | An agent's own read-only history of previously processed intents. Used at inference time for context and precedent matching. Per-agent: an agent reads only its own episodic memory. | ANIF-806 |
+| **Ethics Strike** | A recorded infraction against the ethics framework applied to an agent. Two active strikes transitions the agent to UNTRUSTED trust level and suppresses all outputs pending human review. Strikes are managed per ANIF-716. | ANIF-716, ANIF-805 |
+| **Harm Severity Score** | A numeric score (0–100) representing the potential harm of an AI agent action. Used by the governance gate to trigger `council_review` routing when the score is ≥ 80. | ANIF-712, ANIF-904 |
+| **Knowledge Package** | A structured artefact produced by the Review Council or Learning Chair containing a scenario description, the correct behaviour (positive example) or incorrect behaviour (negative example), and traceability to its council record. Requires human approval before incorporation into agent knowledge. | ANIF-812, ANIF-905, ANIF-908 |
+| **Mode Selector** | The deterministic component that evaluates six input factors (reversibility, risk score, ethics flag, time pressure, novelty, strike history) and selects the deliberation model for an AI Council session. Must not use LLM inference. | ANIF-902 |
+| **Prompt Injection** | An attack in which malicious content is inserted into an agent's input to manipulate its behaviour. Four types: direct, indirect, jailbreak, and role confusion. Defended by a five-layer detection architecture per ANIF-842. | ANIF-842 |
+| **Review Council** | The AI Council type that convenes after every Severity 1 ethics incident or Level 3+ security incident. Always uses the adversarial deliberation model. Produces accountability determination, policy change recommendations, and learning packages. | ANIF-905 |
+| **Runtime Council** | The AI Council type that convenes during live execution when an intent triggers `council_review` governance mode. Subject to hard time limits; defaults to halt if no decision is reached within the window. | ANIF-904 |
+| **Trust Level** | The categorical trust classification assigned to each agent: SYSTEM (built-in orchestrator), VERIFIED (approved and in production ≥ 72 hours, no active strikes), PROVISIONAL (first 72 hours post-deployment or post-reinstatement), or UNTRUSTED (active strikes or security investigation). Computed automatically; not manually configurable. | ANIF-805 |
+| **Zero Trust (Agent)** | The authentication model requiring per-request X.509 certificate verification for every agent action, with no session-based or cached trust. Defined in ANIF-843. Distinct from general network zero trust architecture. | ANIF-843 |
 
 ---
 
