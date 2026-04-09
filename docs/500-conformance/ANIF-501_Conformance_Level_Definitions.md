@@ -18,7 +18,7 @@
 
 ## Abstract
 
-This document provides the normative definitions of the four ANIF conformance levels: L1 Aware, L2 Aligned, L3 Conformant, and L4 Certified. For each level it specifies mandatory and recommended requirements, the evidence required to substantiate a claim, the ANIF document series that must be satisfied, and the verification method applicable to the level. It also defines downgrade conditions, partial conformance rules, and the process for declaring a conformance level.
+This document provides the normative definitions of all five ANIF conformance levels: L1 Aware, L2 Aligned, L3 Conformant, L4 Certified, and L5 AI-Native. For each level it specifies mandatory and recommended requirements, the evidence required to substantiate a claim, the ANIF document series that must be satisfied, and the verification method applicable to the level. It also defines downgrade conditions, partial conformance rules, and the process for declaring a conformance level.
 
 ---
 
@@ -30,7 +30,7 @@ This document is the normative authority for determining whether an implementati
 
 ### 1.2 Scope
 
-This document covers all four conformance levels (L1–L4) and applies to:
+This document covers all five conformance levels (L1–L5) and applies to:
 
 - Implementing organisations conducting self-assessments
 - Vendors preparing conformance profiles (ANIF-504 through ANIF-506)
@@ -294,19 +294,84 @@ Third-party certification per ANIF-502. The certifier must be independent of the
 
 ---
 
+### 4.5 L5 — AI-Native
+
+#### 4.5.1 Description
+
+L5 AI-Native is the conformance level for organisations that have implemented the full ANIF AI framework — ethics, agent architecture, governance, security, and council — on top of a certified L4 base. L5 organisations operate AI agents with autonomous decision-making authority over real network infrastructure under continuous human governance. L5 MUST NOT be self-declared. It MUST be issued by an external auditor meeting the criteria in ANIF-839 section 7.
+
+#### 4.5.2 Mandatory Requirements
+
+| ID | Requirement |
+|---|---|
+| L5-M-01 | The organisation MUST satisfy all L4 requirements as a prerequisite. |
+| L5-M-02 | The organisation MUST implement all 19 documents in the AI Ethics series (ANIF-700–725). |
+| L5-M-03 | The organisation MUST implement all 25 documents in the AI Agent Architecture series (ANIF-800–824). |
+| L5-M-04 | The organisation MUST implement all 10 documents in the AI Governance series (ANIF-830–839). |
+| L5-M-05 | The organisation MUST implement all 10 documents in the AI Security series (ANIF-840–849). |
+| L5-M-06 | The organisation MUST assess its regulatory context against ANIF-851 and implement the applicable industry compliance constraints. |
+| L5-M-07 | The organisation MUST implement all 9 documents in the AI Council series (ANIF-900–908). |
+| L5-M-08 | All three council types — Build-Time, Runtime, and Review — MUST be established and operational per ANIF-900. |
+| L5-M-09 | The organisation MUST complete the ANIF-848 annual red-team engagement with no Critical findings prior to the L5 claim. |
+| L5-M-10 | The organisation MUST complete the ANIF-839 annual external audit with no Critical or Major findings. |
+| L5-M-11 | Cryptographic identity per ANIF-843 MUST be implemented for all production agents. |
+| L5-M-12 | All four governance modes — `auto`, `manual_review`, `block`, and `council_review` — MUST be operational. |
+| L5-M-13 | The continuous compliance monitoring programme defined in ANIF-839 section 6 MUST be operational at the time of audit. |
+| L5-M-14 | The AI ethics programme MUST be operational: all P-01 through P-06 principles enforced, ethics strikes operational, ethics incident response tested. |
+| L5-M-15 | L5 conformance MUST NOT be self-declared. It MUST be issued by an external auditor accredited per ANIF-839 section 7. |
+
+#### 4.5.3 Recommended Requirements
+
+| ID | Requirement |
+|---|---|
+| L5-S-01 | The organisation SHOULD complete Phase 3 Step 5 of the ANIF-823 migration roadmap at least 30 days before claiming L5. |
+| L5-S-02 | The organisation SHOULD maintain a public conformance register entry for its L5 certificate. |
+| L5-S-03 | The organisation SHOULD conduct continuous compliance monitoring as defined in ANIF-839 section 6 for a minimum of 90 days before the L5 audit. |
+
+#### 4.5.4 Evidence Required
+
+| Artefact | Required |
+|---|---|
+| L4 evidence package | MUST |
+| External audit report (ANIF-839) with no Critical or Major findings, dated within 12 months | MUST |
+| Red-team report (ANIF-848) with no Critical findings, dated within 12 months | MUST |
+| Council establishment records (ANIF-907) for all three council types | MUST |
+| Certificate registry (ANIF-843) with entries for all production agents | MUST |
+| ANIF-700–908 implementation documentation | MUST |
+| Continuous compliance monitoring records (ANIF-839 section 6) | MUST |
+| Issued L5 certificate from external auditor | MUST |
+
+#### 4.5.5 ANIF Document Series That MUST Be Satisfied
+
+All of L4 plus: ANIF-700–725, ANIF-800–824, ANIF-830–839, ANIF-840–849, ANIF-851 (where applicable), ANIF-900–908.
+
+#### 4.5.6 Verification Method
+
+L5 certification requires an external audit conducted by an accredited conformance assessor with AI governance expertise. The assessor MUST meet the qualification criteria in ANIF-839 section 7 and MUST NOT have a prior consulting relationship with the organisation. The L5 certificate is issued by the assessor, not by the organisation. The external audit MUST find no Critical or Major findings against ANIF conformance requirements.
+
+---
+
 ## 5. Conformance Requirements — Summary Table
 
-| Requirement                        | L1 | L2 | L3 | L4 |
-|------------------------------------|----|----|----|----|
-| Gap analysis documented            | M  | M  | M  | M  |
-| ANIF-001–107 satisfied             | —  | M  | M  | M  |
-| ANIF-200–407 satisfied             | —  | —  | M  | M  |
-| TC-001 through TC-005 passed       | —  | —  | M  | M  |
-| Self-assessment checklist complete | S  | M  | M  | M  |
-| Audit trail operational            | —  | M  | M  | M  |
-| Test run logs retained             | —  | —  | M  | M  |
-| Third-party certification          | —  | —  | —  | M  |
-| Annual re-certification            | —  | —  | —  | M  |
+| Requirement                            | L1 | L2 | L3 | L4 | L5 |
+|----------------------------------------|----|----|----|----|-----|
+| Gap analysis documented                | M  | M  | M  | M  | M  |
+| ANIF-001–107 satisfied                 | —  | M  | M  | M  | M  |
+| ANIF-200–407 satisfied                 | —  | —  | M  | M  | M  |
+| TC-001 through TC-005 passed           | —  | —  | M  | M  | M  |
+| Self-assessment checklist complete     | S  | M  | M  | M  | M  |
+| Audit trail operational                | —  | M  | M  | M  | M  |
+| Test run logs retained                 | —  | —  | M  | M  | M  |
+| Third-party certification              | —  | —  | —  | M  | M  |
+| Annual re-certification                | —  | —  | —  | M  | M  |
+| ANIF-700–725 implemented               | —  | —  | —  | —  | M  |
+| ANIF-800–824 implemented               | —  | —  | —  | —  | M  |
+| ANIF-830–839 implemented               | —  | —  | —  | —  | M  |
+| ANIF-840–849 implemented               | —  | —  | —  | —  | M  |
+| ANIF-900–908 implemented               | —  | —  | —  | —  | M  |
+| AI Council (all 3 types) operational   | —  | —  | —  | —  | M  |
+| Red-team passed (no Critical findings) | —  | —  | —  | —  | M  |
+| L5 certificate from external auditor   | —  | —  | —  | —  | M  |
 
 M = MUST satisfy; S = SHOULD satisfy; — = not applicable at this level
 
