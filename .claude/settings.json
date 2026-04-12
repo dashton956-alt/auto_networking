@@ -1,0 +1,90 @@
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/home/dan/Desktop/github/auto_networking"],
+      "env": {}
+    },
+    "git": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-git", "--repository", "/home/dan/Desktop/github/auto_networking"],
+      "env": {}
+    },
+    "postgres": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-postgres"],
+      "env": {
+        "POSTGRES_URL": "${POSTGRES_URL}"
+      }
+    },
+    "docker": {
+      "command": "npx",
+      "args": ["-y", "mcp-server-docker"],
+      "env": {}
+    },
+    "playwright": {
+      "command": "npx",
+      "args": ["-y", "@playwright/mcp"],
+      "env": {}
+    },
+    "figma": {
+      "command": "npx",
+      "args": ["-y", "figma-mcp"],
+      "env": {
+        "FIGMA_TOKEN": "${FIGMA_TOKEN}"
+      }
+    },
+    "prometheus": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-prometheus"],
+      "env": {
+        "PROMETHEUS_URL": "${PROMETHEUS_URL}"
+      }
+    },
+    "sot": {
+      "command": "python3",
+      "args": ["-m", "anif_platform.sot.mcp_server"],
+      "env": {
+        "SOT_BACKEND": "${SOT_BACKEND}",
+        "NAUTOBOT_URL": "${NAUTOBOT_URL}",
+        "NAUTOBOT_TOKEN": "${NAUTOBOT_TOKEN}",
+        "NETBOX_URL": "${NETBOX_URL}",
+        "NETBOX_TOKEN": "${NETBOX_TOKEN}",
+        "INFRAHUB_URL": "${INFRAHUB_URL}",
+        "INFRAHUB_TOKEN": "${INFRAHUB_TOKEN}"
+      }
+    }
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'cd /home/dan/Desktop/github/auto_networking && files=$(git diff --name-only 2>/dev/null | grep \"\\.py$\" | head -20 | tr \"\\n\" \" \"); if [ -n \"$files\" ]; then .venv/bin/ruff check --fix $files 2>&1 | head -40; .venv/bin/black $files 2>&1 | head -20; .venv/bin/mypy $files 2>&1 | head -40; fi'"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'cd /home/dan/Desktop/github/auto_networking && files=$(git diff --name-only 2>/dev/null | grep -E \"\\.(yml|yaml|json)$\" | grep -v \".github\" | grep -v \"settings.json\" | head -10 | tr \"\\n\" \" \"); if [ -n \"$files\" ]; then echo \"Intent/schema files changed: $files — run ibn-agent to validate\"; fi'"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'cd /home/dan/Desktop/github/auto_networking && printf \"# Claude Resume Context\\n\\nSession stopped: $(date)\\n\\n## Last task in progress\\n\\n(update before closing)\\n\\n## Active ralph-loop prompt\\n\\n(paste /ralph-loop prompt here)\\n\\n## Git status\\n\\n$(git status --short 2>/dev/null)\\n\" > .claude/resume.md'"
+          }
+        ]
+      }
+    ]
+  }
+}
