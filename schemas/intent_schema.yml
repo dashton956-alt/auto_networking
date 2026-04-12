@@ -1,0 +1,58 @@
+type: object
+required:
+  - service
+  - objectives
+  - constraints
+  - priority
+# Note: when environment is "prod", priority MUST be "critical" or "high".
+# This cross-field rule is enforced by the custom validation layer (US-03),
+# not by this schema, because JSON Schema cannot express conditional
+# requirements across sibling fields without AJV custom keywords.
+
+properties:
+  service:
+    type: string
+
+  environment:
+    type: string
+    enum: [prod, staging, dev]
+
+  objectives:
+    type: object
+    properties:
+      latency_ms:
+        type: number
+        minimum: 1
+      availability_percent:
+        type: number
+        minimum: 90
+        maximum: 100
+      throughput_mbps:
+        type: number
+
+  constraints:
+    type: object
+    properties:
+      region:
+        type: string
+        enum: [EU, US, APAC]
+      encryption:
+        type: boolean
+      allowed_zones:
+        type: array
+        items:
+          type: string
+
+  policies:
+    type: array
+    items:
+      type: string
+      enum:
+        - zero_trust
+        - no_public_ingress
+        - pci_compliant
+        - data_residency
+
+  priority:
+    type: string
+    enum: [low, medium, high, critical]
