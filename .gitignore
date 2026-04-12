@@ -1,0 +1,31 @@
+# Worktrees
+.worktrees/
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.coverage
+htmlcov/
+coverage.xml
+*.egg
+
+# Environment
+.env
+
+# Node
+src/anif_ui/node_modules/
+src/anif_ui/dist/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
