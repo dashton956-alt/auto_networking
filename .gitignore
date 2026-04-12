@@ -29,3 +29,4 @@ src/anif_ui/dist/
 # OS
 .DS_Store
 Thumbs.db
+.worktrees/
