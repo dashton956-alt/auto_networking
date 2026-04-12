@@ -1,0 +1,25 @@
+# Example containerlab topology for BGP intent testing
+# Run: sudo containerlab deploy -t simulation/topologies/example-bgp.yml
+
+name: anif-bgp-test
+
+topology:
+  nodes:
+    router-a:
+      kind: linux
+      image: frrouting/frr:latest
+
+    router-b:
+      kind: linux
+      image: frrouting/frr:latest
+
+  links:
+    - endpoints: ["router-a:eth1", "router-b:eth1"]
+
+# Intent under test:
+# service: transit-routing
+# environment: test
+# objectives:
+#   convergence_seconds: 30
+# policies:
+#   - bgp_prefix_filter

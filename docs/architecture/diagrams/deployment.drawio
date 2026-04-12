@@ -1,0 +1,10 @@
+<mxfile host="app.diagrams.net" version="24.0.0">
+  <diagram id="deployment" name="Deployment">
+    <mxGraphModel><root>
+      <mxCell id="0"/><mxCell id="1" parent="0"/>
+      <mxCell id="2" value="Deployment diagram — populated by architecture-agent after phase completion" style="text;html=1;align=center;verticalAlign=middle;resizable=0;autosize=1;" vertex="1" parent="1">
+        <mxGeometry x="100" y="100" width="500" height="60" as="geometry"/>
+      </mxCell>
+    </root></mxGraphModel>
+  </diagram>
+</mxfile>
