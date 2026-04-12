@@ -9,7 +9,7 @@
 
 ## Overview
 
-Set up the `auto_networking` repository as a fully instrumented Claude Code workspace for building the ANIF reference platform implementation. The workspace provides Claude with everything needed to build the platform autonomously: directory structure, CLAUDE.md instructions, MCP server connectivity, a 7-agent quality mesh, automated hooks, and 9 installed plugins — all wired to the Spec-Driven Development + Ralph Loop methodology.
+Set up the `auto_networking` repository as a fully instrumented Claude Code workspace for building the ANIF reference platform implementation. The workspace provides Claude with everything needed to build the platform autonomously: directory structure, CLAUDE.md instructions, MCP server connectivity, a 9-agent quality mesh, automated hooks, 10 installed plugins, complete CI/CD pipeline, network simulation tooling, source-of-truth integration adapters, database migration management, observability stack, and frontend UI scaffolding — all wired to the Spec-Driven Development + Ralph Loop methodology.
 
 ---
 
@@ -20,29 +20,49 @@ auto_networking/
 ├── CLAUDE.md                            ← platform build instructions, agent definitions, SDD workflow
 ├── .claude/
 │   └── settings.json                    ← MCP servers, hooks, plugin list
+├── .github/
+│   └── workflows/
+│       ├── ci.yml                       ← lint, type-check, unit + integration tests, security scan, Docker build
+│       ├── accessibility.yml            ← Playwright WCAG 2.1 AA audit (UI changes only)
+│       ├── intent-validate.yml          ← intent schema + IBN policy check (schema/intent changes only)
+│       └── compliance.yml              ← ISO 27001, HIPAA, GDPR dependency + config audit
 ├── src/
-│   └── anif_platform/
-│       ├── __init__.py
-│       ├── schemas/                     ← Pydantic models — Intent, Policy, RiskScore, AuditRecord
-│       ├── audit/                       ← AuditWriter — tamper-evident records
-│       ├── policy/                      ← PolicyEvaluator — deterministic evaluation
-│       ├── risk/                        ← RiskScorer — 0–100 with component breakdown
-│       ├── intent/                      ← IntentValidator — schema + constraint validation
-│       ├── governance/                  ← GovernanceGate — routes auto/recommend/manual/council
-│       ├── pipeline/                    ← Pipeline stages with rollback
-│       ├── agents/                      ← AgentRegistry — lifecycle + trust level
-│       ├── auth/                        ← CertificateVerifier — X.509 per-request
-│       ├── ethics/                      ← EthicsEvaluator — runs before every Tier 3 action
-│       ├── monitoring/                  ← SecurityMonitor — structured monitoring events
-│       └── human_loop/                  ← ApprovalQueue — recommendations + override records
+│   ├── anif_platform/
+│   │   ├── __init__.py
+│   │   ├── schemas/                     ← Pydantic models — Intent, Policy, RiskScore, AuditRecord
+│   │   ├── audit/                       ← AuditWriter — tamper-evident records
+│   │   ├── policy/                      ← PolicyEvaluator — deterministic evaluation
+│   │   ├── risk/                        ← RiskScorer — 0–100 with component breakdown
+│   │   ├── intent/                      ← IntentValidator — schema + constraint validation
+│   │   ├── governance/                  ← GovernanceGate — routes auto/recommend/manual/council
+│   │   ├── pipeline/                    ← Pipeline stages with rollback
+│   │   ├── agents/                      ← AgentRegistry — lifecycle + trust level
+│   │   ├── auth/                        ← CertificateVerifier — X.509 per-request
+│   │   ├── ethics/                      ← EthicsEvaluator — runs before every Tier 3 action
+│   │   ├── monitoring/                  ← SecurityMonitor — structured monitoring events
+│   │   ├── human_loop/                  ← ApprovalQueue — recommendations + override records
+│   │   └── sot/                         ← Source-of-Truth adapter — Nautobot / NetBox / InfraHub
+│   └── anif_ui/                         ← React + TypeScript management dashboard
+│       ├── components/
+│       ├── pages/
+│       ├── hooks/
+│       └── types/
 ├── tests/
 │   ├── unit/
 │   ├── integration/
+│   ├── network/                         ← containerlab topology tests
 │   └── conftest.py
 ├── schemas/                             ← ANIF YAML schemas (intent, action, policy, risk, audit)
+├── migrations/                          ← Alembic database migrations
+│   ├── env.py
+│   ├── script.py.mako
+│   └── versions/
+├── simulation/
+│   ├── topologies/                      ← containerlab topology YAML files
+│   └── batfish/                         ← Batfish network config snapshots
 ├── docker/
 │   ├── Dockerfile
-│   └── docker-compose.yml
+│   └── docker-compose.yml              ← includes postgres, redis, prometheus, grafana
 ├── docs/
 │   └── superpowers/
 │       └── specs/                       ← design documents (this file lives here)
@@ -56,11 +76,15 @@ Module build order matches `CLAUDE_PLATFORM_BUILD_GUIDE.md` in the ANIF repo exa
 
 ## 2. Tech Stack
 
+### Backend
+
 | Technology | Version | Role |
 |---|---|---|
 | Python | 3.11+ | Primary language |
 | FastAPI | current | REST API endpoints |
 | Pydantic v2 | current | Schema validation |
+| SQLAlchemy 2 | current | ORM for audit + risk models |
+| Alembic | current | Database migrations |
 | pytest + pytest-asyncio | current | TDD test framework |
 | Docker + docker-compose | current | Containerisation + local integration env |
 | Redis 7+ | current | Intent queue, message bus |
@@ -68,6 +92,32 @@ Module build order matches `CLAUDE_PLATFORM_BUILD_GUIDE.md` in the ANIF repo exa
 | ruff | current | Linting + auto-fix |
 | black | current | Formatting |
 | mypy | current | Static type checking |
+
+### Frontend
+
+| Technology | Version | Role |
+|---|---|---|
+| React | 18+ | UI framework |
+| TypeScript | 5+ | Type safety |
+| Vite | current | Build tool |
+| Tailwind CSS | current | Styling |
+| Playwright | current | E2E + accessibility testing |
+| axe-core | current | WCAG 2.1 AA automated audit |
+
+### Network Simulation
+
+| Tool | Role |
+|---|---|
+| Containerlab | Primary — container-based topology simulation (already installed) |
+| Batfish | Static network config analysis — validates configs without live devices |
+| GNS3 (optional) | Alternative for appliance-based simulation via REST API |
+
+### Observability
+
+| Tool | Role |
+|---|---|
+| Prometheus | Metrics collection from platform |
+| Grafana | Dashboards — intent pipeline throughput, risk scores, audit volume |
 
 ---
 
@@ -81,6 +131,10 @@ Configured in `.claude/settings.json` under `mcpServers`. All credentials refere
 | `git` | `@modelcontextprotocol/server-git` | Log, diff, blame, branch operations |
 | `postgres` | `@modelcontextprotocol/server-postgres` | Query audit DB + risk register live |
 | `docker` | `mcp-server-docker` | Inspect containers, logs, service health |
+| `playwright` | `@playwright/mcp` | Browser automation — UI testing, WCAG accessibility audits |
+| `figma` | `figma-mcp` | Read Figma designs directly into context |
+| `prometheus` | `mcp-server-prometheus` | Query live metrics from running platform |
+| `sot` | custom (see Section 9) | Unified source-of-truth adapter — Nautobot / NetBox / InfraHub |
 
 ---
 
@@ -90,18 +144,20 @@ Configured in `.claude/settings.json` under `hooks`. Fire automatically — no m
 
 | Event | Matcher | Command |
 |---|---|---|
-| `PostToolUse` | `Edit\|Write\|MultiEdit` | `ruff check --fix <changed .py files>` |
-| `PostToolUse` | `Edit\|Write\|MultiEdit` | `black <changed .py files>` |
-| `PostToolUse` | `Edit\|Write\|MultiEdit` | `mypy <changed .py files>` |
-| `PostToolUse` | `Edit\|Write\|MultiEdit` (`.yml`/`.json`) | `ibn-agent` intent schema lint |
+| `PostToolUse` | `Edit\|Write\|MultiEdit` (`.py`) | `ruff check --fix <changed files>` |
+| `PostToolUse` | `Edit\|Write\|MultiEdit` (`.py`) | `black <changed files>` |
+| `PostToolUse` | `Edit\|Write\|MultiEdit` (`.py`) | `mypy <changed files>` |
+| `PostToolUse` | `Edit\|Write\|MultiEdit` (`.yml`/`.json`) | ibn-agent intent schema lint |
+| `PostToolUse` | `Edit\|Write\|MultiEdit` (SQLAlchemy models) | migration-agent detects model changes |
+| `Stop` | session end | write current task context to `.claude/resume.md` |
 
-Hooks run against changed files only, not the entire codebase. Output capped to prevent context flood.
+Hooks run against changed files only, not the entire codebase. Output capped to 100 lines to prevent context flood.
 
 ---
 
 ## 5. Agent Mesh
 
-All 7 agents are defined in `CLAUDE.md`. They are invoked via the `Agent` tool during development. Each agent has a defined trigger, scope, and prompt template in CLAUDE.md.
+All 9 agents are defined in `CLAUDE.md`. Invoked via the `Agent` tool during development. Each agent has a defined trigger, scope, and prompt template.
 
 ### 5.1 lint-agent
 - **Trigger:** After any `.py` file edit
@@ -134,17 +190,33 @@ All 7 agents are defined in `CLAUDE.md`. They are invoked via the `Agent` tool d
 - **Action:** Enforces Python and FastAPI best practices — SOLID principles, single responsibility, no god classes, proper exception handling (no bare `except`), structured logging, dependency injection, no circular imports, consistent naming conventions, no magic numbers
 
 ### 5.7 ibn-agent
-- **Trigger:** After any `.yml` or `.json` intent file is created or edited; after any intent-processing code is changed
+- **Trigger:** After any `.yml` or `.json` intent file is created or edited; after any intent-processing code changes
 - **Scope:** Intent files + ANIF-300/301 spec + `schemas/intent_schema.yml`
 - **Dual role:**
   1. **Schema linting** — validates intent files against `schemas/intent_schema.yml`; checks all required fields (service, environment, objectives, constraints, policies, priority); validates field types, enum values, and constraint ranges
-  2. **IBN best practice enforcement** — declarative over imperative (no implementation detail leakage into intents), idempotency of intent expressions, proper abstraction layer separation, correct use of objectives vs constraints vs policies, ANIF-300 and ANIF-301 compliance for both network intents (routing, QoS, segmentation, zero-trust) and infrastructure intents (compute, storage, connectivity, scaling)
+  2. **IBN best practice enforcement** — declarative over imperative (no implementation detail leakage into intents), idempotency, proper abstraction layer separation, correct use of objectives vs constraints vs policies, ANIF-300/301 compliance for network intents (routing, QoS, segmentation, zero-trust) and infrastructure intents (compute, storage, connectivity, scaling)
+
+### 5.8 compliance-agent
+- **Trigger:** Before any commit touching UI, API contracts, data models, or auth
+- **Scope:** Staged changes + running app (via Playwright for UI checks)
+- **Checks:**
+  - **WCAG 2.1 AA** — contrast ratios, ARIA labels, keyboard navigation, focus management
+  - **ADA / Section 508** — disability access requirements
+  - **ISO 27001** — infosec control mapping; flags missing audit logs, access controls, encryption at rest
+  - **HIPAA** — data handling, audit trail completeness, minimum necessary access
+  - **GDPR** — data residency constraints, consent handling, right to erasure considerations
+  - **NIST CSF** — cross-references ANIF-102 mapping
+
+### 5.9 migration-agent
+- **Trigger:** When SQLAlchemy models change (detected by hook)
+- **Scope:** `src/anif_platform/schemas/` + `migrations/`
+- **Action:** Compares current models against latest migration; generates Alembic migration script; validates migration is reversible (downgrade path exists); flags destructive operations (column drops, type changes) for human review before proceeding
 
 ---
 
 ## 6. Plugins
 
-Nine plugins installed at workspace level:
+Ten plugins installed at workspace level:
 
 | Plugin | Purpose |
 |---|---|
@@ -158,6 +230,7 @@ Nine plugins installed at workspace level:
 | `hookify` | Create hooks from conversation patterns |
 | `skill-creator` | Build and test custom skills for the project |
 | `ralph-loop` | `/ralph-loop` command — continuous self-referential iteration loops |
+| `frontend-design` | Frontend design skill for UI/UX implementation |
 
 ---
 
@@ -168,18 +241,28 @@ Nine plugins installed at workspace level:
 Every module follows this exact sequence:
 
 ```
-1. READ    — read ANIF-NNN spec for the module; list every MUST and MUST NOT explicitly
-2. GENERATE — invoke test-gen-agent → generates failing pytest stubs from MUSTs
-3. VERIFY  — run tests; confirm all fail (tests that pass before implementation are invalid)
-4. LOOP    — /ralph-loop "implement <module> until all tests pass" --completion-promise "COMPLETE" --max-iterations 30
-5. REVIEW  — invoke spec-review-agent → every MUST covered by test + implementation
-6. QUALITY — invoke best-practices-agent → SOLID, naming, DI, no god classes
-7. IBN     — invoke ibn-agent (if module touches intent processing)
-8. SECURE  — invoke security-agent → ANIF-840–849 + OWASP
-9. COMMIT  — commit message format: `feat: implement ANIF-NNN <description>`
+1. READ      — read ANIF-NNN spec for the module; list every MUST and MUST NOT explicitly
+2. GENERATE  — invoke test-gen-agent → generates failing pytest stubs from MUSTs
+3. VERIFY    — run tests; confirm all fail (tests that pass before implementation are invalid)
+4. LOOP      — /ralph-loop "implement <module> until all tests pass" --completion-promise "COMPLETE" --max-iterations 30
+5. REVIEW    — invoke spec-review-agent → every MUST covered by test + implementation
+6. QUALITY   — invoke best-practices-agent → SOLID, naming, DI, no god classes
+7. IBN       — invoke ibn-agent (if module touches intent processing)
+8. MIGRATE   — invoke migration-agent (if models changed)
+9. SECURE    — invoke security-agent → ANIF-840–849 + OWASP
+10. COMPLY   — invoke compliance-agent (if UI, API contract, auth, or data model touched)
+11. COMMIT   — commit message format: `feat: implement ANIF-NNN <description>`
 ```
 
-Steps 4–9 may loop. A module is not complete until steps 5, 6, and 8 all pass.
+Steps 4–10 may loop. A module is not complete until steps 5, 6, 9, and 10 all pass.
+
+### Rate Limit Recovery
+
+When the Claude Pro usage limit is reached mid-session:
+
+1. Stop hook fires automatically → writes current task + ralph-loop prompt to `.claude/resume.md`
+2. Run `/schedule "resume task from .claude/resume.md" in 5.5h` before closing
+3. On scheduled restart, Claude reads `.claude/resume.md` and continues the loop
 
 ### Ralph Loop Prompt Template
 
@@ -203,56 +286,230 @@ Output <promise>COMPLETE</promise> when all tests pass and spec-review-agent app
 
 ---
 
-## 8. CLAUDE.md Structure
+## 8. CI/CD Pipeline
+
+### `ci.yml` — runs on every push and PR
+
+```
+jobs:
+  lint:        ruff check src/ tests/
+  type-check:  mypy src/
+  unit-tests:  pytest tests/unit/ -v --cov=src
+  integration-tests:
+    services: postgres:15, redis:7
+    run: pytest tests/integration/ -v
+  security-scan:
+    run: bandit -r src/ && pip-audit
+  docker-build: docker build -t anif-platform .
+```
+
+### `accessibility.yml` — runs on UI file changes only (`src/anif_ui/**`)
+
+```
+jobs:
+  wcag-audit:
+    run: playwright + axe-core against built UI
+    fail-on: WCAG 2.1 AA violations
+```
+
+### `intent-validate.yml` — runs on schema or intent file changes (`schemas/**`, `simulation/topologies/**`)
+
+```
+jobs:
+  schema-lint:   validate all intent YAML files against intent_schema.yml
+  ibn-policy:    check IBN best practices (declarative, no leakage, idempotent)
+  batfish-check: static analysis of any network config snapshots
+```
+
+### `compliance.yml` — runs on PRs touching auth, data models, API contracts
+
+```
+jobs:
+  dependency-audit: safety check + pip-audit for CVEs
+  iso27001-check:   verify audit trail fields present on all data models
+  hipaa-check:      verify PHI handling rules (encryption, access log, minimum necessary)
+  gdpr-check:       verify data residency env vars present + deletion endpoints exist
+```
+
+All workflows use GitHub Actions caching for pip dependencies. Integration tests use `services:` blocks — no external infrastructure required in CI.
+
+---
+
+## 9. Source-of-Truth (SoT) Adapter
+
+The platform must integrate with Nautobot, NetBox, or InfraHub interchangeably. A single adapter module (`src/anif_platform/sot/`) abstracts all three behind a common interface.
+
+The `nautobot-intent-network-app` is a separate project and is NOT integrated here. Nautobot, NetBox, and InfraHub are used purely as read sources for device and topology data. The ANIF platform owns all intent authoring, validation, policy evaluation, risk scoring, and execution independently.
+
+### Interface
+
+```python
+class SoTAdapter(Protocol):
+    def get_device(self, name: str) -> Device: ...
+    def get_topology(self, site: str) -> Topology: ...
+    def list_devices(self, site: str | None = None) -> list[Device]: ...
+    def get_prefix(self, prefix: str) -> Prefix: ...
+```
+
+### Implementations
+
+| Adapter | Backend | API |
+|---|---|---|
+| `NautobotAdapter` | Nautobot 3.x | REST + GraphQL — device inventory, IP prefixes, topology |
+| `NetBoxAdapter` | NetBox 3.x+ | REST API — device inventory, IP prefixes, topology |
+| `InfraHubAdapter` | InfraHub | GraphQL — device inventory, topology |
+
+Selected at runtime via `SOT_BACKEND` environment variable (`nautobot` / `netbox` / `infrahub`).
+
+### Custom MCP (`sot` server)
+
+Wraps the adapter and exposes it to Claude as an MCP tool:
+- `sot_get_device(name)` — fetch device record from active SoT
+- `sot_get_topology(site)` — fetch site topology
+- `sot_list_devices(site?)` — list all devices, optionally filtered by site
+- `sot_get_prefix(prefix)` — fetch IP prefix record
+
+The SoT is read-only from the platform's perspective. The platform does not write back to Nautobot/NetBox/InfraHub — it owns its own state in PostgreSQL.
+
+The MCP is a lightweight Python FastAPI server started via `docker-compose`.
+
+---
+
+## 10. Network Simulation
+
+### Containerlab (primary)
+
+- Topology YAML files live in `simulation/topologies/`
+- Each topology maps to a test scenario (e.g., `bgp-intent-test.yml`, `qos-intent-test.yml`)
+- Integration tests in `tests/network/` spin up topologies, submit intents, verify outcomes
+- Supports CEOS, vJunos, FRR, and Linux containers
+
+### Batfish (complementary)
+
+- Network config snapshots in `simulation/batfish/`
+- Used for static analysis — validates that generated configs are correct before pushing to live devices or containerlab
+- Does not require running containers; fast feedback on config correctness
+- Integrated into `intent-validate.yml` CI workflow
+
+### GNS3 (optional)
+
+- REST API available if appliance-level simulation is needed
+- Not included in default setup; documented in `docs/simulation.md` as opt-in
+
+---
+
+## 11. Database Migrations (Alembic)
+
+- `migrations/` directory at repo root
+- `alembic.ini` references `DATABASE_URL` from environment
+- migration-agent generates migration scripts when models change
+- Every migration MUST have a `downgrade()` function — enforced by migration-agent
+- Destructive operations (column drops, type changes) require explicit human approval comment in migration file before CI passes
+
+---
+
+## 12. Observability Stack (local dev)
+
+Included in `docker/docker-compose.yml`:
+
+| Service | Port | Purpose |
+|---|---|---|
+| Prometheus | 9090 | Scrapes metrics from platform |
+| Grafana | 3000 | Dashboards — pipeline throughput, risk scores, audit volume |
+
+Platform exposes `/metrics` endpoint (Prometheus format) via FastAPI middleware.
+
+Prometheus MCP lets Claude query live metrics directly during development:
+- `prometheus_query("anif_intent_processed_total")` — check intent throughput
+- `prometheus_query("anif_risk_score_histogram")` — inspect risk score distribution
+
+---
+
+## 13. Frontend (React + TypeScript)
+
+Management dashboard for network operators. Built in `src/anif_ui/`.
+
+Key pages:
+- **Intent Dashboard** — submit, view, and track intents through the pipeline
+- **Approval Queue** — human-in-loop review and override interface (ANIF-404)
+- **Audit Trail** — queryable audit log viewer
+- **Topology View** — network topology map with intent status overlays
+- **Risk Register** — live risk score dashboard
+
+All pages must pass WCAG 2.1 AA (enforced by compliance-agent + accessibility CI workflow).
+
+`frontend-design` skill invoked for all UI work. Playwright MCP used for live accessibility audits during development.
+
+---
+
+## 14. CLAUDE.md Structure
 
 The `CLAUDE.md` in `auto_networking` contains:
 
-1. **What this repo is** — platform implementation that conforms to ANIF; link to ANIF repo
-2. **ANIF spec reference** — path to companion repo; which spec documents map to which modules
+1. **What this repo is** — platform implementation conforming to ANIF; link to ANIF repo; note that `nautobot-intent-network-app` is a separate project — Nautobot/NetBox/InfraHub are SoT only, not intent execution
+2. **ANIF spec reference** — path to companion repo; spec doc → module mapping table
 3. **Tech stack** — exact versions and why
-4. **Module build order** — numbered list matching Section 1 directory order; no module N before N-1 complete
-5. **SDD + Ralph Loop workflow** — the 9-step sequence from Section 7
-6. **Agent definitions** — all 7 agents with triggers, scope, and prompt templates
-7. **MCP server usage** — when to use each MCP
-8. **What not to do** — no gold-plating, no features without spec coverage, no tests after code, no bare excepts, no American English in spec-adjacent comments
-9. **Schema standards** — intent YAML validation rules, ibn-agent triggers
+4. **Module build order** — numbered list; no module N before N-1 complete
+5. **SDD + Ralph Loop workflow** — the 11-step sequence from Section 7
+6. **Rate limit recovery** — Stop hook + `/schedule` instructions
+7. **Agent definitions** — all 9 agents with triggers, scope, and prompt templates
+8. **MCP server usage** — when to use each MCP
+9. **SoT adapter** — how to select backend, how to test against each
+10. **Network simulation** — when to use containerlab vs Batfish
+11. **What not to do** — no gold-plating, no features without spec coverage, no tests after code, no bare excepts, no migration without downgrade, no destructive migration without human approval
+12. **Schema standards** — intent YAML validation rules, ibn-agent triggers
 
 ---
 
-## 9. .env.example
-
-Documents all required environment variables:
+## 15. Environment Variables (.env.example)
 
 ```
+# Database
 POSTGRES_URL=postgresql://user:password@localhost:5432/anif
+DATABASE_URL=postgresql://user:password@localhost:5432/anif
+
+# Cache / Queue
 REDIS_URL=redis://localhost:6379
+
+# Source of Truth
+SOT_BACKEND=nautobot                          # nautobot | netbox | infrahub
+NAUTOBOT_URL=http://localhost:8080
+NAUTOBOT_TOKEN=your-token-here
+NETBOX_URL=http://localhost:8000
+NETBOX_TOKEN=your-token-here
+INFRAHUB_URL=http://localhost:8000
+INFRAHUB_TOKEN=your-token-here
+
+# Observability
+PROMETHEUS_URL=http://localhost:9090
+
+# Figma (UI design)
+FIGMA_TOKEN=your-token-here
+
+# ANIF companion repo
 ANIF_SPEC_REPO_PATH=/path/to/Autonomous-Networking-Infrastructure-Framework-ANIF
+
+# Platform
 LOG_LEVEL=INFO
+ENVIRONMENT=development
 ```
 
 ---
 
-## 10. pyproject.toml
-
-Defines:
-- Project metadata and Python version constraint (>=3.11)
-- All runtime dependencies with minimum versions
-- Dev dependencies: pytest, pytest-asyncio, ruff, black, mypy
-- ruff configuration: line length 100, select E/F/I/N/UP, auto-fixable rules
-- mypy configuration: strict mode, disallow untyped defs
-- pytest configuration: asyncio mode auto, test paths
-
----
-
-## Deliverables
+## 16. Deliverables
 
 | Artifact | Path |
 |---|---|
 | CLAUDE.md | `/auto_networking/CLAUDE.md` |
 | Settings | `/auto_networking/.claude/settings.json` |
-| Directory skeleton | `/auto_networking/src/anif_platform/*/` |
-| Test skeleton | `/auto_networking/tests/unit/` + `tests/integration/` |
-| Docker config | `/auto_networking/docker/docker-compose.yml` |
+| CI/CD workflows | `/auto_networking/.github/workflows/*.yml` |
+| Backend skeleton | `/auto_networking/src/anif_platform/*/` |
+| Frontend skeleton | `/auto_networking/src/anif_ui/` |
+| Test skeleton | `/auto_networking/tests/` |
+| Alembic setup | `/auto_networking/migrations/` |
+| Docker stack | `/auto_networking/docker/docker-compose.yml` |
+| Simulation topologies | `/auto_networking/simulation/topologies/` |
+| SoT MCP server | `/auto_networking/src/anif_platform/sot/` |
 | Python project | `/auto_networking/pyproject.toml` |
 | Env template | `/auto_networking/.env.example` |
 | ANIF schemas | `/auto_networking/schemas/` |
