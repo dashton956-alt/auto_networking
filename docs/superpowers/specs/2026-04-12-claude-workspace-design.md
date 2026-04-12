@@ -9,7 +9,9 @@
 
 ## Overview
 
-Set up the `auto_networking` repository as a fully instrumented Claude Code workspace for building the ANIF reference platform implementation. The workspace provides Claude with everything needed to build the platform autonomously: directory structure, CLAUDE.md instructions, MCP server connectivity, a 9-agent quality mesh, automated hooks, 10 installed plugins, complete CI/CD pipeline, network simulation tooling, source-of-truth integration adapters, database migration management, observability stack, and frontend UI scaffolding — all wired to the Spec-Driven Development + Ralph Loop methodology.
+Set up the `auto_networking` repository as a fully instrumented Claude Code workspace for building the ANIF reference platform implementation. The workspace provides Claude with everything needed to build the platform autonomously: directory structure, CLAUDE.md instructions, MCP server connectivity, a 10-agent quality mesh (including architecture agent), automated hooks, 10 installed plugins, complete CI/CD pipeline, network simulation tooling, source-of-truth integration adapters, database migration management, observability stack, and frontend UI scaffolding — all wired to the Spec-Driven Development + Ralph Loop methodology.
+
+Backend and frontend are treated as independent tracks with their own phase sequences.
 
 ---
 
@@ -64,6 +66,16 @@ auto_networking/
 │   ├── Dockerfile
 │   └── docker-compose.yml              ← includes postgres, redis, prometheus, grafana
 ├── docs/
+│   ├── architecture/
+│   │   ├── ARCHITECTURE.md              ← living architecture document (kept in sync by architecture-agent)
+│   │   └── diagrams/                    ← draw.io XML files
+│   │       ├── system-context.drawio
+│   │       ├── component.drawio
+│   │       ├── sequence-pipeline.drawio
+│   │       ├── agent-tiers.drawio
+│   │       ├── data-flow.drawio
+│   │       ├── sot-integration.drawio
+│   │       └── deployment.drawio
 │   └── superpowers/
 │       └── specs/                       ← design documents (this file lives here)
 ├── pyproject.toml
@@ -207,7 +219,23 @@ All 9 agents are defined in `CLAUDE.md`. Invoked via the `Agent` tool during dev
   - **GDPR** — data residency constraints, consent handling, right to erasure considerations
   - **NIST CSF** — cross-references ANIF-102 mapping
 
-### 5.9 migration-agent
+### 5.9 architecture-agent
+- **Trigger:** After any module is marked complete; after any schema change; after any significant architectural decision
+- **Scope:** Entire repo + ANIF spec documents + `docs/architecture/`
+- **Dual role:**
+  1. **Documentation sync** — reads implemented code and updates the relevant ANIF spec cross-references, module README files, and the living architecture document (`docs/architecture/ARCHITECTURE.md`) to reflect what was actually built; flags any divergence between spec intent and implementation
+  2. **Draw.io diagram generation** — generates or updates `.drawio` XML diagram files in `docs/architecture/diagrams/` covering:
+     - System context diagram (platform boundaries, external systems)
+     - Component diagram (modules, dependencies, interfaces)
+     - Sequence diagrams (per pipeline stage: intent → policy → risk → decision → governance → execution)
+     - Agent tier diagram (4-tier model with capabilities and boundaries)
+     - Data flow diagram (intent lifecycle, audit trail flow)
+     - SoT integration diagram (read/write-back boundaries)
+     - Deployment diagram (Docker services, ports, networking)
+
+Diagrams are generated as valid draw.io XML (`.drawio` files) that open directly in draw.io / diagrams.net. The agent updates existing diagrams incrementally rather than regenerating from scratch.
+
+### 5.10 migration-agent
 - **Trigger:** When SQLAlchemy models change (detected by hook)
 - **Scope:** `src/anif_platform/schemas/` + `migrations/`
 - **Action:** Compares current models against latest migration; generates Alembic migration script; validates migration is reversible (downgrade path exists); flags destructive operations (column drops, type changes) for human review before proceeding
@@ -216,7 +244,7 @@ All 9 agents are defined in `CLAUDE.md`. Invoked via the `Agent` tool during dev
 
 ## 6. Plugins
 
-Ten plugins installed at workspace level:
+Eleven plugins installed at workspace level:
 
 | Plugin | Purpose |
 |---|---|
@@ -231,6 +259,7 @@ Ten plugins installed at workspace level:
 | `skill-creator` | Build and test custom skills for the project |
 | `ralph-loop` | `/ralph-loop` command — continuous self-referential iteration loops |
 | `frontend-design` | Frontend design skill for UI/UX implementation |
+| `agent-sdk-dev` | Agent SDK development — used when building the AI agent tier (B6–B8) |
 
 ---
 
@@ -468,6 +497,8 @@ The `CLAUDE.md` in `auto_networking` contains:
 10. **Network simulation** — when to use containerlab vs Batfish
 11. **What not to do** — no gold-plating, no features without spec coverage, no tests after code, no bare excepts, no migration without downgrade, no destructive migration without human approval
 12. **Schema standards** — intent YAML validation rules, ibn-agent triggers
+13. **Platform build order** — backend phases B1–B8 and frontend phases F1–F6 with dependency rules
+14. **Architecture agent** — when to invoke, which diagrams to update, living doc location
 
 ---
 
@@ -506,7 +537,59 @@ ENVIRONMENT=development
 
 ---
 
-## 16. Deliverables
+## 16. Platform Build Order
+
+Backend and frontend are independent tracks. Frontend phases unlock when the corresponding backend API is ready. The architecture agent runs after every phase on both tracks.
+
+### Backend Track
+
+| Phase | Name | Key Components | Depends On |
+|---|---|---|---|
+| B1 | Foundation & Data Models | Pydantic schemas (Intent, Policy, RiskScore, AuditRecord, Action), AuditWriter | Nothing — built first |
+| B2 | Core Pipeline | Intent Engine, Policy Engine, Conflict Resolution, Orchestrator skeleton | B1 |
+| B3 | Risk & Decision | Risk/Trust Quantifier, Decision Engine, rollback plan generation, dry-run mode | B2 determinism proven |
+| B4 | Governance & Human Controls | Governance Gate, mode routing, Approval Queue, RBAC, emergency halt | B3 |
+| B5 | Execution & Rollback | 4 action executors, rollback handlers, mock adapters, adapter abstraction | B4 |
+| B6 | Agent Infrastructure | Agent Registry, Lifecycle Manager, X.509 auth, cryptographic tier boundaries at API gateway | B5 |
+| B7 | Ethics & Safety Gates | Ethics Evaluator, LLM Shadow, Bias/Harm detection, Agent Containment, Ethics Audit Trail | B6 |
+| B8 | Councils & Learning | 3 AI Councils, Council Mode Selector, Closed-Loop Feedback, Learning Agent, Observability | B7 |
+
+**Running alongside all backend phases:**
+- SoT Adapter (Nautobot/NetBox/InfraHub) — needed from B2 for canonical state reads; write-back from B5
+- CI/CD — in place from day one, expands with each phase
+- Architecture agent — fires after each phase completes
+
+### Frontend Track
+
+| Phase | Name | Key Components | Backend Dependency |
+|---|---|---|---|
+| F1 | Design System | Base component library (WCAG 2.1 AA), Tailwind theme, typography, colour system, form primitives | None — starts in parallel with B1 |
+| F2 | Intent Dashboard | Intent submission form, intent list view, pipeline status tracker, intent detail view | B2 (Intent API) |
+| F3 | Approval Queue UI | Human-in-loop review interface, approve/reject/override controls, approval ticket timer display | B4 (Approval Queue API) |
+| F4 | Audit Trail Viewer | Queryable audit log table, reasoning chain expander, intent history timeline | B2 (Audit API) |
+| F5 | Topology View | Network graph canvas, intent-status node colouring, interface detail cards, intent overlay | B5 (Execution + SoT) |
+| F6 | Risk & Governance Dashboard | Live risk score panels, council decision feed, ethics strikes log, observability metrics | B8 (Observability + Councils) |
+
+### Architecture Agent Cadence
+
+After every backend and frontend phase completes:
+1. architecture-agent updates `docs/architecture/ARCHITECTURE.md`
+2. architecture-agent regenerates affected `.drawio` diagrams
+3. Diagrams committed alongside the phase completion commit
+
+### Key Build Order Rules
+
+1. **Audit first, always** — AuditWriter is B1; nothing in B2–B8 runs before it exists
+2. **Prove determinism before proceeding** — Policy Engine (B2) must pass 100+ identical-input tests before B3 starts
+3. **Tier boundaries are cryptographic** — Agent tier enforcement (B6) is at the API gateway via X.509 claims, not configuration
+4. **Ethics gate is mandatory** — No Tier 3 action executes until B7 is complete
+5. **Councils never execute** — They route decisions back to pipeline or humans; they do not act directly
+6. **Human override is always available** — Emergency halt (B4) must remain operational even if the main pipeline is down
+7. **Frontend is WCAG 2.1 AA from F1** — Accessibility is built into the design system, not retrofitted
+
+---
+
+## 17. Deliverables
 
 | Artifact | Path |
 |---|---|
@@ -523,4 +606,6 @@ ENVIRONMENT=development
 | Python project | `/auto_networking/pyproject.toml` |
 | Env template | `/auto_networking/.env.example` |
 | ANIF schemas | `/auto_networking/schemas/` |
+| Living architecture doc | `/auto_networking/docs/architecture/ARCHITECTURE.md` |
+| Draw.io diagrams (7) | `/auto_networking/docs/architecture/diagrams/*.drawio` |
 | This spec | `/auto_networking/docs/superpowers/specs/2026-04-12-claude-workspace-design.md` |
