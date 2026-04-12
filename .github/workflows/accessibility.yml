@@ -1,0 +1,35 @@
+name: Accessibility Audit
+
+on:
+  push:
+    paths:
+      - "src/anif_ui/**"
+  pull_request:
+    paths:
+      - "src/anif_ui/**"
+
+jobs:
+  wcag-audit:
+    name: WCAG 2.1 AA Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: src/anif_ui/package-lock.json
+      - name: Install dependencies
+        working-directory: src/anif_ui
+        run: npm ci
+      - name: Build UI
+        working-directory: src/anif_ui
+        run: npm run build
+      - name: Install Playwright + axe
+        working-directory: src/anif_ui
+        run: npx playwright install --with-deps chromium
+      - name: Run WCAG 2.1 AA audit
+        working-directory: src/anif_ui
+        run: npx playwright test --project=chromium tests/accessibility/
+        env:
+          CI: true
