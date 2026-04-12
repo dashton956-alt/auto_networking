@@ -364,12 +364,22 @@ Selected at runtime via `SOT_BACKEND` environment variable (`nautobot` / `netbox
 ### Custom MCP (`sot` server)
 
 Wraps the adapter and exposes it to Claude as an MCP tool:
+
+**Read operations:**
 - `sot_get_device(name)` — fetch device record from active SoT
 - `sot_get_topology(site)` — fetch site topology
 - `sot_list_devices(site?)` — list all devices, optionally filtered by site
 - `sot_get_prefix(prefix)` — fetch IP prefix record
 
-The SoT is read-only from the platform's perspective. The platform does not write back to Nautobot/NetBox/InfraHub — it owns its own state in PostgreSQL.
+**Write-back operations (metadata only):**
+- `sot_tag_device(name, tag)` — add intent tag to a device (e.g. `intent:qos-prod-v2`)
+- `sot_tag_interface(device, interface, tag)` — add intent tag to an interface
+- `sot_tag_connection(device_a, device_b, tag)` — add intent tag to a connection/link
+- `sot_comment_device(name, comment)` — add comment recording intent applied + outcome
+- `sot_comment_interface(device, interface, comment)` — add comment on interface
+- `sot_set_custom_field(object_type, name, field, value)` — set a custom field (e.g. `intent_status`, `last_intent_id`, `intent_applied_at`)
+
+Write-back is **metadata only** — tags, comments, and custom fields that record which intent was applied, when, and with what outcome. The platform does not modify device configurations, IP assignments, or topology records in the SoT. All execution state is owned in PostgreSQL; the SoT write-back is a synchronisation of intent application status for operator visibility.
 
 The MCP is a lightweight Python FastAPI server started via `docker-compose`.
 
@@ -446,7 +456,7 @@ All pages must pass WCAG 2.1 AA (enforced by compliance-agent + accessibility CI
 
 The `CLAUDE.md` in `auto_networking` contains:
 
-1. **What this repo is** — platform implementation conforming to ANIF; link to ANIF repo; note that `nautobot-intent-network-app` is a separate project — Nautobot/NetBox/InfraHub are SoT only, not intent execution
+1. **What this repo is** — platform implementation conforming to ANIF; link to ANIF repo; note that `nautobot-intent-network-app` is a separate project — Nautobot/NetBox/InfraHub serve as SoT (device inventory, topology, prefixes) plus receive metadata write-back (tags, comments, custom fields on devices/interfaces/connections) to record intent application status; the platform owns all intent execution independently
 2. **ANIF spec reference** — path to companion repo; spec doc → module mapping table
 3. **Tech stack** — exact versions and why
 4. **Module build order** — numbered list; no module N before N-1 complete
