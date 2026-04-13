@@ -27,13 +27,6 @@
       "args": ["-y", "@playwright/mcp"],
       "env": {}
     },
-    "figma": {
-      "command": "npx",
-      "args": ["-y", "figma-mcp"],
-      "env": {
-        "FIGMA_TOKEN": "${FIGMA_TOKEN}"
-      }
-    },
     "prometheus": {
       "command": "npx",
       "args": ["-y", "@modelcontextprotocol/server-prometheus"],
