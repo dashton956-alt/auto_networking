@@ -53,6 +53,37 @@
         "INFRAHUB_URL": "${INFRAHUB_URL}",
         "INFRAHUB_TOKEN": "${INFRAHUB_TOKEN}"
       }
+    },
+    "memory": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-memory"],
+      "env": {
+        "MEMORY_FILE_PATH": "${MEMORY_FILE_PATH}"
+      }
+    },
+    "puppeteer": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-puppeteer"],
+      "env": {}
+    },
+    "tavily": {
+      "command": "npx",
+      "args": ["-y", "tavily-mcp"],
+      "env": {
+        "TAVILY_API_KEY": "${TAVILY_API_KEY}"
+      }
+    },
+    "context7": {
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp"],
+      "env": {
+        "CONTEXT7_API_KEY": "${CONTEXT7_API_KEY}"
+      }
+    },
+    "context-mode": {
+      "command": "npx",
+      "args": ["-y", "github:mksglu/context-mode"],
+      "env": {}
     }
   },
   "hooks": {
