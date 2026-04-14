@@ -1,1 +1,1 @@
-"""ANIF Platform module — implementation pending."""
+"""ANIF pipeline module."""
