@@ -1,0 +1,7 @@
+name: data_residency
+category: compliance
+version: "1.0.0"
+rules:
+  - condition: "constraints.region:not_in_list:[EU,US,APAC]"
+    action: deny
+    reason: "Data residency policy: region is not in the approved region list"

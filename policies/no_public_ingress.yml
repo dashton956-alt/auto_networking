@@ -1,0 +1,7 @@
+name: no_public_ingress
+category: security
+version: "1.0.0"
+rules:
+  - condition: "constraints.allowed_zones:equals:[]"
+    action: deny
+    reason: "Public ingress is prohibited; at least one allowed zone must be specified"

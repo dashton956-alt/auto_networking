@@ -1,0 +1,10 @@
+name: zero_trust
+category: security
+version: "1.0.0"
+rules:
+  - condition: "constraints.encryption:equals:false"
+    action: deny
+    reason: "Zero trust requires encryption to be explicitly enabled"
+  - condition: "constraints.region:not_in_list:[EU,US,APAC]"
+    action: deny
+    reason: "Zero trust requires a valid region to be declared"
