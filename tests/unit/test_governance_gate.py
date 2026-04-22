@@ -56,24 +56,30 @@ class TestR05BlockMissingRole:
 class TestR06BlockSafetyDecisionBlock:
     def test_policy_result_with_block_triggers_r06(self) -> None:
         gate = GovernanceGate()
-        result = gate.check(**make_request(
-            policy_results=[{"policy_id": "p1", "outcome": "fail", "safety_decision": "block"}]
-        ))
+        result = gate.check(
+            **make_request(
+                policy_results=[{"policy_id": "p1", "outcome": "fail", "safety_decision": "block"}]
+            )
+        )
         assert result["mode"] == "block"
         assert "R-06" in result["triggered_rule"]
 
     def test_policy_result_with_warn_does_not_trigger_r06(self) -> None:
         gate = GovernanceGate()
-        result = gate.check(**make_request(
-            policy_results=[{"policy_id": "p1", "outcome": "fail", "safety_decision": "warn"}]
-        ))
+        result = gate.check(
+            **make_request(
+                policy_results=[{"policy_id": "p1", "outcome": "fail", "safety_decision": "warn"}]
+            )
+        )
         assert "R-06" not in result.get("triggered_rule", "")
 
     def test_policy_result_with_null_safety_decision_does_not_trigger_r06(self) -> None:
         gate = GovernanceGate()
-        result = gate.check(**make_request(
-            policy_results=[{"policy_id": "p1", "outcome": "pass", "safety_decision": None}]
-        ))
+        result = gate.check(
+            **make_request(
+                policy_results=[{"policy_id": "p1", "outcome": "pass", "safety_decision": None}]
+            )
+        )
         assert result["mode"] != "block" or "R-06" not in result.get("triggered_rule", "R-05")
 
 
@@ -81,11 +87,26 @@ class TestBlockRulesEvaluatedFirst:
     def test_r05_block_stops_evaluation_of_manual_review_rules(self) -> None:
         """ANIF-406 §4.2.1: if block rule triggered, MUST NOT evaluate manual_review rules."""
         gate = GovernanceGate()
-        result = gate.check(**make_request(
-            operator_roles=["read_only"],
-            action_type="isolate_segment",
-        ))
+        result = gate.check(
+            **make_request(
+                operator_roles=["read_only"],
+                action_type="isolate_segment",
+            )
+        )
         assert result["mode"] == "block"
+        assert "R-01" not in result["triggered_rule"]
+
+    def test_r06_block_stops_evaluation_of_manual_review_rules(self) -> None:
+        """ANIF-406 §4.2.1: if R-06 block rule fires, MUST NOT evaluate manual_review rules."""
+        gate = GovernanceGate()
+        result = gate.check(
+            **make_request(
+                action_type="isolate_segment",
+                policy_results=[{"policy_id": "p1", "outcome": "fail", "safety_decision": "block"}],
+            )
+        )
+        assert result["mode"] == "block"
+        assert "R-06" in result["triggered_rule"]
         assert "R-01" not in result["triggered_rule"]
 
 
@@ -124,63 +145,75 @@ class TestR03ProdLowTrust:
     def test_prod_auto_low_trust_triggers_r03(self) -> None:
         """R-03: prod + would-be auto + trust_score < 60 → manual_review."""
         gate = GovernanceGate()
-        result = gate.check(**make_request(
-            environment="prod",
-            risk_score=30,
-            trust_score=59,
-        ))
+        result = gate.check(
+            **make_request(
+                environment="prod",
+                risk_score=30,
+                trust_score=59,
+            )
+        )
         assert result["mode"] == "manual_review"
         assert "R-03" in result["triggered_rule"]
 
     def test_prod_trust_60_does_not_trigger_r03(self) -> None:
         gate = GovernanceGate()
-        result = gate.check(**make_request(
-            environment="prod",
-            risk_score=30,
-            trust_score=60,
-        ))
+        result = gate.check(
+            **make_request(
+                environment="prod",
+                risk_score=30,
+                trust_score=60,
+            )
+        )
         assert "R-03" not in result.get("triggered_rule", "")
 
     def test_staging_low_trust_does_not_trigger_r03(self) -> None:
         gate = GovernanceGate()
-        result = gate.check(**make_request(
-            environment="staging",
-            risk_score=30,
-            trust_score=30,
-        ))
+        result = gate.check(
+            **make_request(
+                environment="staging",
+                risk_score=30,
+                trust_score=30,
+            )
+        )
         assert "R-03" not in result.get("triggered_rule", "")
 
     def test_r03_not_triggered_when_already_manual_review(self) -> None:
         """R-03 only applies when mode would be auto."""
         gate = GovernanceGate()
-        result = gate.check(**make_request(
-            environment="prod",
-            risk_score=75,
-            trust_score=40,
-        ))
+        result = gate.check(
+            **make_request(
+                environment="prod",
+                risk_score=75,
+                trust_score=40,
+            )
+        )
         assert result["mode"] == "manual_review"
 
 
 class TestR04PolicyConflict:
     def test_conflicting_equal_precedence_policies_triggers_r04(self) -> None:
         gate = GovernanceGate()
-        result = gate.check(**make_request(
-            policy_results=[
-                {"policy_id": "p1", "outcome": "pass", "safety_decision": None},
-                {"policy_id": "p2", "outcome": "fail", "safety_decision": None},
-            ]
-        ))
+        result = gate.check(
+            **make_request(
+                policy_results=[
+                    {"policy_id": "p1", "outcome": "pass", "safety_decision": None},
+                    {"policy_id": "p2", "outcome": "fail", "safety_decision": None},
+                ]
+            )
+        )
         assert result["mode"] == "manual_review"
         assert "R-04" in result["triggered_rule"]
 
     def test_all_pass_policies_does_not_trigger_r04(self) -> None:
         gate = GovernanceGate()
-        result = gate.check(**make_request(
-            policy_results=[
-                {"policy_id": "p1", "outcome": "pass", "safety_decision": None},
-                {"policy_id": "p2", "outcome": "pass", "safety_decision": None},
-            ]
-        ))
+        result = gate.check(
+            **make_request(
+                policy_results=[
+                    {"policy_id": "p1", "outcome": "pass", "safety_decision": None},
+                    {"policy_id": "p2", "outcome": "pass", "safety_decision": None},
+                ]
+            )
+        )
         assert "R-04" not in result.get("triggered_rule", "")
 
 
@@ -188,14 +221,16 @@ class TestAutoMode:
     def test_auto_when_no_rules_triggered(self) -> None:
         """ANIF-406 §4.2.3: auto only when no block or manual_review rule fires."""
         gate = GovernanceGate()
-        result = gate.check(**make_request(
-            operator_roles=["network_engineer"],
-            action_type="apply_qos",
-            environment="dev",
-            risk_score=30,
-            trust_score=70,
-            policy_results=[],
-        ))
+        result = gate.check(
+            **make_request(
+                operator_roles=["network_engineer"],
+                action_type="apply_qos",
+                environment="dev",
+                risk_score=30,
+                trust_score=70,
+                policy_results=[],
+            )
+        )
         assert result["mode"] == "auto"
         assert result["triggered_rule"] == "none"
 
@@ -204,10 +239,12 @@ class TestMultipleTriggeredRules:
     def test_multiple_manual_review_rules_all_listed(self) -> None:
         """ANIF-406 §4.2.2: all triggered rule IDs MUST be listed."""
         gate = GovernanceGate()
-        result = gate.check(**make_request(
-            action_type="isolate_segment",
-            risk_score=80,
-        ))
+        result = gate.check(
+            **make_request(
+                action_type="isolate_segment",
+                risk_score=80,
+            )
+        )
         assert result["mode"] == "manual_review"
         assert "R-01" in result["triggered_rule"]
         assert "R-02" in result["triggered_rule"]

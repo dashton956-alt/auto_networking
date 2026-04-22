@@ -10,10 +10,6 @@ from __future__ import annotations
 
 from typing import Any
 
-import structlog
-
-log = structlog.get_logger(__name__)
-
 # Roles that satisfy the submission requirement (R-05) — ANIF-406 §4.2.1
 _PERMITTED_SUBMITTER_ROLES = frozenset({"network_engineer", "automation_agent", "senior_engineer"})
 
@@ -52,7 +48,7 @@ class GovernanceGate:
         if not roles_set.intersection(_PERMITTED_SUBMITTER_ROLES):
             rationale = (
                 f"Governance mode set to block because the caller ({operator_id}) does not hold "
-                f"the network_engineer or automation_agent role. "
+                f"a permitted submitter role (network_engineer, automation_agent, or senior_engineer). "
                 f"The caller's roles are: {', '.join(operator_roles) or 'none'}. "
                 f"This action cannot proceed."
             )
