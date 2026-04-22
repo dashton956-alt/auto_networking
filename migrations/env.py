@@ -12,8 +12,12 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 # Import all models so Alembic can detect them
-# from anif_platform.schemas import models  # uncomment when B1 starts
-target_metadata = None  # replace with Base.metadata when B1 starts
+from anif_platform.database import Base  # noqa: F401
+import anif_platform.human_loop.models  # noqa: F401 — registers ApprovalTicketRow
+import anif_platform.audit.models  # noqa: F401 — registers AuditRecord
+import anif_platform.intent.models  # noqa: F401 — registers IntentRow
+
+target_metadata = Base.metadata
 
 
 def get_database_url() -> str:
