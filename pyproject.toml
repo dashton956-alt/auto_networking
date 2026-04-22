@@ -44,7 +44,7 @@ target-version = "py311"
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "UP", "B", "SIM"]
 fixable = ["ALL"]
-ignore = ["E501"]
+ignore = ["E501", "B008"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["anif_platform"]
