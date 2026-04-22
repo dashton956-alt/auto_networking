@@ -23,6 +23,8 @@ from anif_platform.intent.registry import IntentRegistry
 from anif_platform.intent.schemas import GitIntentRef
 from anif_platform.intent.validator import IntentValidator
 from anif_platform.policy.engine import PolicyEngine
+from anif_platform.risk.decision import DecisionEngine
+from anif_platform.risk.scorer import RiskScorer
 from anif_platform.schemas.audit_record import AuditOutcome, AuditRecord, AuditStage
 from anif_platform.schemas.intent import Intent
 
@@ -137,19 +139,79 @@ async def orchestrate(
 
     pipeline_result["policy"] = policy_result
 
-    # ── Stage 3: Risk Scoring (STUB — implemented in B3) ─────────────────
-    pipeline_result["risk"] = {
-        "status": "not_yet_implemented",
-        "stage": "risk",
-        "message": "RiskScorer will be implemented in B3",
-    }
+    # ── Stage 3: Risk Scoring (ANIF-304) ────────────────────────────────
+    start = time.monotonic()
+    scorer = RiskScorer()
+    risk_result = scorer.score(
+        intent=validation.validated_intent,  # type: ignore[arg-type]
+        policy_result=policy_result,
+        network_state=None,  # no network state adapter yet (B3); fallback applied
+    )
+    duration_ms = int((time.monotonic() - start) * 1000)
 
-    # ── Stage 4: Decision Engine (STUB — implemented in B3) ──────────────
-    pipeline_result["decision"] = {
-        "status": "not_yet_implemented",
-        "stage": "decision",
-        "message": "DecisionEngine will be implemented in B3",
+    risk_outcome = (
+        AuditOutcome.blocked
+        if risk_result["safety_decision"] == "block"
+        else AuditOutcome.success
+    )
+    await writer.write(AuditRecord(
+        intent_id=intent_id,
+        stage=AuditStage.risk,
+        input_summary={"intent_id": str(intent_id)},
+        output_summary={
+            "risk_score": risk_result["risk_score"],
+            "trust_score": risk_result["trust_score"],
+            "safety_decision": risk_result["safety_decision"],
+        },
+        outcome=risk_outcome,
+        duration_ms=duration_ms,
+    ))
+
+    pipeline_result["risk"] = risk_result
+
+    if risk_result["safety_decision"] == "block" and not request.dry_run:
+        return {
+            "status": "blocked",
+            "stage": "risk",
+            "intent_id": str(intent_id),
+            "risk_result": risk_result,
+        }
+
+    # ── Stage 4: Decision Engine (ANIF-305) ──────────────────────────────
+    start = time.monotonic()
+    decision_engine = DecisionEngine()
+    decision_result = decision_engine.decide(
+        intent_id=str(intent_id),
+        intent=validation.validated_intent,  # type: ignore[arg-type]
+        risk_result=risk_result,
+        policy_result=policy_result,
+        network_state=None,
+    )
+    duration_ms = int((time.monotonic() - start) * 1000)
+
+    decision_outcome_map = {
+        "auto": AuditOutcome.success,
+        "manual_review": AuditOutcome.escalated,
+        "block": AuditOutcome.blocked,
     }
+    await writer.write(AuditRecord(
+        intent_id=intent_id,
+        stage=AuditStage.decision,
+        input_summary={"scoring_id": risk_result.get("scoring_id")},
+        output_summary={
+            "mode": decision_result["mode"],
+            "recommended_action": (
+                decision_result["recommended_action"]["action_type"]
+                if decision_result["recommended_action"]
+                else None
+            ),
+            "confidence_score": decision_result["confidence_score"],
+        },
+        outcome=decision_outcome_map.get(decision_result["mode"], AuditOutcome.success),
+        duration_ms=duration_ms,
+    ))
+
+    pipeline_result["decision"] = decision_result
 
     # ── Stage 5: Governance Gate (STUB — implemented in B4) ──────────────
     pipeline_result["governance"] = {
