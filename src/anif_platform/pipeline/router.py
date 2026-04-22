@@ -17,8 +17,9 @@ from typing import Any
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
-from anif_platform.auth import get_api_key
 from anif_platform.audit.writer import AuditWriter
+from anif_platform.auth import get_api_key
+from anif_platform.human_loop.queue import ApprovalQueue
 from anif_platform.intent.registry import IntentRegistry
 from anif_platform.intent.schemas import GitIntentRef
 from anif_platform.intent.validator import IntentValidator
@@ -37,6 +38,10 @@ def get_policy_engine() -> PolicyEngine:
 
 def get_intent_registry() -> IntentRegistry:
     raise NotImplementedError("Provide IntentRegistry via dependency injection")
+
+
+def get_approval_queue() -> ApprovalQueue:
+    raise NotImplementedError("Provide ApprovalQueue via dependency injection")
 
 
 def get_audit_writer() -> AuditWriter:
@@ -115,19 +120,22 @@ async def orchestrate(
             if policy_result["overall_result"] == "fail"
             else AuditOutcome.success
         )
-        await writer.write(AuditRecord(
-            intent_id=intent_id,
-            stage=AuditStage.policy,
-            input_summary={"intent_id": str(intent_id)},
-            output_summary={"overall_result": policy_result["overall_result"]},
-            outcome=policy_outcome,
-            duration_ms=duration_ms,
-            policies_evaluated=[r["policy_name"] for r in policy_result["policy_results"]],
-            policies_violated=[
-                r["policy_name"] for r in policy_result["policy_results"]
-                if r["decision"] == "deny"
-            ],
-        ))
+        await writer.write(
+            AuditRecord(
+                intent_id=intent_id,
+                stage=AuditStage.policy,
+                input_summary={"intent_id": str(intent_id)},
+                output_summary={"overall_result": policy_result["overall_result"]},
+                outcome=policy_outcome,
+                duration_ms=duration_ms,
+                policies_evaluated=[r["policy_name"] for r in policy_result["policy_results"]],
+                policies_violated=[
+                    r["policy_name"]
+                    for r in policy_result["policy_results"]
+                    if r["decision"] == "deny"
+                ],
+            )
+        )
 
     if policy_result["overall_result"] == "fail":
         return {
@@ -150,22 +158,22 @@ async def orchestrate(
     duration_ms = int((time.monotonic() - start) * 1000)
 
     risk_outcome = (
-        AuditOutcome.blocked
-        if risk_result["safety_decision"] == "block"
-        else AuditOutcome.success
+        AuditOutcome.blocked if risk_result["safety_decision"] == "block" else AuditOutcome.success
     )
-    await writer.write(AuditRecord(
-        intent_id=intent_id,
-        stage=AuditStage.risk,
-        input_summary={"intent_id": str(intent_id)},
-        output_summary={
-            "risk_score": risk_result["risk_score"],
-            "trust_score": risk_result["trust_score"],
-            "safety_decision": risk_result["safety_decision"],
-        },
-        outcome=risk_outcome,
-        duration_ms=duration_ms,
-    ))
+    await writer.write(
+        AuditRecord(
+            intent_id=intent_id,
+            stage=AuditStage.risk,
+            input_summary={"intent_id": str(intent_id)},
+            output_summary={
+                "risk_score": risk_result["risk_score"],
+                "trust_score": risk_result["trust_score"],
+                "safety_decision": risk_result["safety_decision"],
+            },
+            outcome=risk_outcome,
+            duration_ms=duration_ms,
+        )
+    )
 
     pipeline_result["risk"] = risk_result
 
@@ -194,22 +202,24 @@ async def orchestrate(
         "manual_review": AuditOutcome.escalated,
         "block": AuditOutcome.blocked,
     }
-    await writer.write(AuditRecord(
-        intent_id=intent_id,
-        stage=AuditStage.decision,
-        input_summary={"scoring_id": risk_result.get("scoring_id")},
-        output_summary={
-            "mode": decision_result["mode"],
-            "recommended_action": (
-                decision_result["recommended_action"]["action_type"]
-                if decision_result["recommended_action"]
-                else None
-            ),
-            "confidence_score": decision_result["confidence_score"],
-        },
-        outcome=decision_outcome_map.get(decision_result["mode"], AuditOutcome.success),
-        duration_ms=duration_ms,
-    ))
+    await writer.write(
+        AuditRecord(
+            intent_id=intent_id,
+            stage=AuditStage.decision,
+            input_summary={"scoring_id": risk_result.get("scoring_id")},
+            output_summary={
+                "mode": decision_result["mode"],
+                "recommended_action": (
+                    decision_result["recommended_action"]["action_type"]
+                    if decision_result["recommended_action"]
+                    else None
+                ),
+                "confidence_score": decision_result["confidence_score"],
+            },
+            outcome=decision_outcome_map.get(decision_result["mode"], AuditOutcome.success),
+            duration_ms=duration_ms,
+        )
+    )
 
     pipeline_result["decision"] = decision_result
 
