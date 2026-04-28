@@ -43,8 +43,6 @@ from anif_platform.schemas.audit_record import AuditOutcome, AuditRecord, AuditS
 log = structlog.get_logger(__name__)
 router = APIRouter(prefix="/governance", tags=["governance"])
 
-_gate = GovernanceGate()
-
 
 def get_audit_writer() -> AuditWriter:
     raise NotImplementedError("Override via dependency injection")
@@ -52,6 +50,10 @@ def get_audit_writer() -> AuditWriter:
 
 def get_approval_queue() -> ApprovalQueue:
     raise NotImplementedError("Override via dependency injection")
+
+
+def get_governance_gate() -> GovernanceGate:
+    return GovernanceGate()
 
 
 def _parse_roles(raw: str | None) -> list[str]:
@@ -65,12 +67,13 @@ async def governance_check(
     request: GovernanceCheckRequest,
     writer: AuditWriter = Depends(get_audit_writer),
     queue: ApprovalQueue = Depends(get_approval_queue),
+    gate: GovernanceGate = Depends(get_governance_gate),
     _: str = Depends(get_api_key),
 ) -> GovernanceCheckResponse:
     """Evaluate governance rules — ANIF-406 §4.1.1. Returns 503 if audit write fails."""
     start = time.monotonic()
 
-    gate_result = _gate.check(
+    gate_result = gate.check(
         intent_id=str(request.intent_id),
         operator_id=request.operator_id,
         operator_roles=request.operator_roles,
