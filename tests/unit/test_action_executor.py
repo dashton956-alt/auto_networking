@@ -8,9 +8,10 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from anif_platform.execution.adapter import AdapterResponse
 from anif_platform.execution.executor import ActionExecutor, PreconditionError
 from anif_platform.execution.mock_adapter import MockNetworkAdapter
+from anif_platform.execution.models import ExecutionRecordRow
+from anif_platform.human_loop.models import ApprovalTicketRow, TicketStatus
 
 
 def make_gov_auto() -> dict:
@@ -25,16 +26,32 @@ def make_decision(action_type: str = "apply_qos") -> dict:
     return {
         "decision_id": str(uuid.uuid4()),
         "recommended_action": {"action_type": action_type, "parameters": {}, "risk_level": "low"},
-        "rollback_plan": {"action_type": action_type, "description": "Rollback", "estimated_duration_ms": 2000},
+        "rollback_plan": {
+            "action_type": action_type,
+            "description": "Rollback",
+            "estimated_duration_ms": 2000,
+        },
     }
 
 
 def make_params(action_type: str = "apply_qos") -> dict:
     params = {
-        "reroute_traffic": {"source_segment": "s1", "target_segment": "s2", "routing_protocol": "BGP"},
-        "apply_qos": {"policy_name": "prio", "traffic_class": "DSCP_EF", "bandwidth_guarantee_mbps": 100},
+        "reroute_traffic": {
+            "source_segment": "s1",
+            "target_segment": "s2",
+            "routing_protocol": "BGP",
+        },
+        "apply_qos": {
+            "policy_name": "prio",
+            "traffic_class": "DSCP_EF",
+            "bandwidth_guarantee_mbps": 100,
+        },
         "scale_bandwidth": {"segment_id": "seg-1", "target_bandwidth_mbps": 200, "direction": "up"},
-        "isolate_segment": {"segment_id": "seg-1", "isolation_reason": "fault", "blast_radius_assessment": "low"},
+        "isolate_segment": {
+            "segment_id": "seg-1",
+            "isolation_reason": "fault",
+            "blast_radius_assessment": "low",
+        },
     }
     return params.get(action_type, {})
 
@@ -83,7 +100,6 @@ class TestGovernancePreconditions:
     async def test_isolate_segment_permitted_with_approved_ticket(self) -> None:
         """ANIF-306 §5: isolate_segment executes when Precondition B (approved ticket) is met."""
         executor, session, _ = make_executor()
-        from anif_platform.human_loop.models import ApprovalTicketRow, TicketStatus
         ticket = ApprovalTicketRow()
         ticket.ticket_id = "t-001"
         ticket.status = TicketStatus.approved
@@ -122,7 +138,6 @@ class TestGovernancePreconditions:
     async def test_manual_review_with_pending_ticket_raises(self) -> None:
         """ANIF-306 §5: Precondition B requires status=approved, not pending."""
         executor, session, _ = make_executor()
-        from anif_platform.human_loop.models import ApprovalTicketRow, TicketStatus
         ticket = ApprovalTicketRow()
         ticket.ticket_id = "t-002"
         ticket.status = TicketStatus.pending
@@ -259,7 +274,6 @@ class TestManualRollback:
     async def test_rollback_by_intent_id(self) -> None:
         """ANIF-306 §6.2: rollback MUST be callable using only intent_id."""
         executor, session, writer = make_executor(force_success=True)
-        from anif_platform.execution.models import ExecutionRecordRow
         record = ExecutionRecordRow()
         record.execution_id = str(uuid.uuid4())
         record.intent_id = uuid.uuid4()
@@ -285,6 +299,8 @@ class TestManualRollback:
 
         result = await executor.rollback(intent_id=record.intent_id)
         assert result["rollback_status"] == "success"
+        assert isinstance(result["audit_record_id"], str)
+        assert result["audit_record_id"]  # non-empty
         assert result["intent_id"] == record.intent_id
 
     @pytest.mark.asyncio

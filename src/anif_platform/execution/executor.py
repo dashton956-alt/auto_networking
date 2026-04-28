@@ -28,6 +28,7 @@ log = structlog.get_logger(__name__)
 
 # isolate_segment MUST NEVER auto-execute — ANIF-306 §5
 _ALWAYS_REQUIRES_TICKET: frozenset[str] = frozenset({"isolate_segment"})
+_HTTP_FORBIDDEN: int = 403
 
 
 class PreconditionError(Exception):
@@ -101,7 +102,26 @@ class ActionExecutor:
 
         # ── Call adapter ──────────────────────────────────────────────────
         start = time.monotonic()
-        adapter_response = self._adapter.execute(action_type, parameters, execution_id)
+        try:
+            adapter_response = self._adapter.execute(action_type, parameters, execution_id)
+        except Exception as exc:
+            duration_ms = int((time.monotonic() - start) * 1000)
+            completed_at = datetime.now(UTC)
+            await self._writer.write(
+                AuditRecord(
+                    intent_id=intent_id,
+                    stage=AuditStage.execute,
+                    input_summary={
+                        "execution_id": execution_id,
+                        "action_type": action_type,
+                        "event": "EXECUTION_FAILED",
+                    },
+                    output_summary={"error": str(exc)},
+                    outcome=AuditOutcome.failure,
+                    duration_ms=duration_ms,
+                )
+            )
+            raise
         duration_ms = int((time.monotonic() - start) * 1000)
         completed_at = datetime.now(UTC)
 
@@ -248,7 +268,7 @@ class ActionExecutor:
             )
             raise PreconditionError(
                 "isolate_segment requires an approved governance ticket; auto mode is prohibited.",
-                http_status=403,
+                http_status=_HTTP_FORBIDDEN,
             )
 
         if mode == "manual_review":
@@ -260,7 +280,7 @@ class ActionExecutor:
                 )
                 raise PreconditionError(
                     "Governance mode is manual_review but ticket_id was not provided.",
-                    http_status=403,
+                    http_status=_HTTP_FORBIDDEN,
                 )
 
             ticket = await self._session.get(ApprovalTicketRow, ticket_id)
@@ -273,7 +293,7 @@ class ActionExecutor:
                 )
                 raise PreconditionError(
                     f"Ticket {ticket_id} is not approved (status: {status}).",
-                    http_status=403,
+                    http_status=_HTTP_FORBIDDEN,
                 )
 
     async def _write_precondition_failed(
@@ -319,7 +339,26 @@ class ActionExecutor:
             )
         )
 
-        rb_response = self._adapter.rollback(action_type, rollback_reference, rollback_id)
+        try:
+            rb_response = self._adapter.rollback(action_type, rollback_reference, rollback_id)
+        except Exception as exc:
+            log.error(
+                "rollback_adapter_exception",
+                intent_id=str(intent_id),
+                action_type=action_type,
+                execution_id=execution_id,
+                error=str(exc),
+            )
+            # Treat adapter exception as rollback failure
+            from anif_platform.execution.adapter import AdapterResponse
+
+            rb_response = AdapterResponse(
+                success=False,
+                adapter_status_code=500,
+                adapter_message=f"Adapter raised exception during rollback: {exc}",
+                applied_changes=[],
+                rollback_reference=None,
+            )
         rollback_status = "success" if rb_response.success else "failed"
         outcome = AuditOutcome.success if rb_response.success else AuditOutcome.failure
         event = "ROLLBACK_SUCCESS" if rb_response.success else "ROLLBACK_FAILED"
