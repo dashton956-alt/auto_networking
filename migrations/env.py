@@ -16,6 +16,7 @@ from anif_platform.database import Base  # noqa: F401
 import anif_platform.human_loop.models  # noqa: F401 — registers ApprovalTicketRow
 import anif_platform.audit.models  # noqa: F401 — registers AuditRecord
 import anif_platform.intent.models  # noqa: F401 — registers IntentRow
+import anif_platform.execution.models  # noqa: F401 — registers ExecutionRecordRow
 
 target_metadata = Base.metadata
 
