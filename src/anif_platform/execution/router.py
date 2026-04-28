@@ -67,7 +67,7 @@ async def execute_action(
             ticket_id=request.ticket_id,
         )
     except PreconditionError as exc:
-        raise HTTPException(status_code=exc.http_status, detail=str(exc)) from exc
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
 
     return result
 
