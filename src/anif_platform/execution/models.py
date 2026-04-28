@@ -5,7 +5,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, Integer, String, Text, Uuid
+from sqlalchemy import Boolean, DateTime, Integer, String, Text, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 
 from anif_platform.database import Base
@@ -34,9 +34,7 @@ class ExecutionRecordRow(Base):
     adapter_message: Mapped[str] = mapped_column(Text, nullable=False)
     applied_changes: Mapped[str] = mapped_column(Text, nullable=False, default="[]")  # JSON list
     rollback_reference: Mapped[str | None] = mapped_column(String, nullable=True)
-    rollback_available: Mapped[str] = mapped_column(
-        String, nullable=False, default="false"
-    )  # "true" | "false"
+    rollback_available: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     rollback_status: Mapped[str | None] = mapped_column(String, nullable=True)
     duration_ms: Mapped[int] = mapped_column(Integer, nullable=False)
     executed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
