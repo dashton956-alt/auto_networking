@@ -19,6 +19,8 @@ from pydantic import BaseModel
 
 from anif_platform.audit.writer import AuditWriter
 from anif_platform.auth import get_api_key
+from anif_platform.execution.executor import ActionExecutor, PreconditionError
+from anif_platform.execution.router import get_action_executor
 from anif_platform.governance.gate import GovernanceGate
 from anif_platform.human_loop.queue import ApprovalQueue
 from anif_platform.intent.registry import IntentRegistry
@@ -62,6 +64,7 @@ async def orchestrate(
     registry: IntentRegistry = Depends(get_intent_registry),
     writer: AuditWriter = Depends(get_audit_writer),
     queue: ApprovalQueue = Depends(get_approval_queue),
+    executor: ActionExecutor = Depends(get_action_executor),
     _: str = Depends(get_api_key),
 ) -> dict[str, Any]:
     """
@@ -307,12 +310,26 @@ async def orchestrate(
 
     pipeline_result["governance"] = _gov_result
 
-    # ── Stage 6: Execute (STUB — implemented in B5) ──────────────────────
-    pipeline_result["execute"] = {
-        "status": "not_yet_implemented",
-        "stage": "execute",
-        "message": "ActionExecutor will be implemented in B5",
-    }
+    # ── Stage 6: Execute (ANIF-306) ──────────────────────────────────────
+    if not request.dry_run:
+        try:
+            _exec_result = await executor.execute(
+                intent_id=intent_id,
+                decision=decision_result,
+                parameters=decision_result.get("recommended_action", {}).get("parameters", {}),
+                governance_result=_gov_result,
+                ticket_id=None,  # auto mode: no ticket needed
+            )
+        except PreconditionError as exc:
+            return {
+                "status": "precondition_failed",
+                "stage": "execute",
+                "intent_id": str(intent_id),
+                "error": str(exc),
+            }
+        pipeline_result["execute"] = _exec_result
+    else:
+        pipeline_result["execute"] = {"status": "dry_run", "stage": "execute"}
 
     return {
         "status": "pipeline_complete",

@@ -17,6 +17,10 @@ from anif_platform.audit.router import router as audit_router
 from anif_platform.audit.writer import AuditWriter
 from anif_platform.auth import get_api_key
 from anif_platform.database import async_session_factory, engine
+from anif_platform.execution.executor import ActionExecutor
+from anif_platform.execution.mock_adapter import MockNetworkAdapter
+from anif_platform.execution.router import get_action_executor as exec_get_executor
+from anif_platform.execution.router import router as execution_router
 from anif_platform.governance.router import get_approval_queue as gov_get_queue
 from anif_platform.governance.router import get_audit_writer as gov_get_writer
 from anif_platform.governance.router import router as governance_router
@@ -29,6 +33,7 @@ from anif_platform.intent.registry import IntentRegistry
 from anif_platform.intent.router import get_audit_writer as intent_get_writer
 from anif_platform.intent.router import get_intent_registry as intent_get_registry
 from anif_platform.intent.router import router as intent_router
+from anif_platform.pipeline.router import get_action_executor as pipeline_get_executor
 from anif_platform.pipeline.router import get_approval_queue as pipeline_get_queue
 from anif_platform.pipeline.router import get_audit_writer as pipeline_get_writer
 from anif_platform.pipeline.router import get_intent_registry as pipeline_get_registry
@@ -111,6 +116,15 @@ async def _get_session_approval_queue(request: Request) -> AsyncGenerator[Approv
         yield ApprovalQueue(session=session, writer=writer)
 
 
+async def _get_session_executor(
+    request: Request,
+) -> AsyncGenerator[ActionExecutor, None]:
+    async with async_session_factory() as session:
+        writer = AuditWriter(session)
+        adapter = MockNetworkAdapter()
+        yield ActionExecutor(adapter=adapter, session=session, writer=writer)
+
+
 # ── Dependency overrides ──────────────────────────────────────────────────
 
 app.dependency_overrides[get_audit_query_service] = _get_session_query
@@ -126,6 +140,8 @@ app.dependency_overrides[gov_get_writer] = _get_session_writer
 app.dependency_overrides[gov_get_queue] = _get_session_approval_queue
 app.dependency_overrides[halt_get_writer] = _get_session_writer
 app.dependency_overrides[pipeline_get_queue] = _get_session_approval_queue
+app.dependency_overrides[exec_get_executor] = _get_session_executor
+app.dependency_overrides[pipeline_get_executor] = _get_session_executor
 
 
 # ── Webhook endpoint (when GIT_WATCHER_MODE includes webhook) ────────────
@@ -156,3 +172,4 @@ app.include_router(pipeline_router)
 app.include_router(webhook_router)
 app.include_router(governance_router)
 app.include_router(human_loop_router)
+app.include_router(execution_router)
