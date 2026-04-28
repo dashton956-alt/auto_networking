@@ -166,7 +166,7 @@ class ActionExecutor:
 
         # ── Automatic rollback on failure (§8.1) ─────────────────────────
         if not adapter_response.success:
-            rollback_status = await self._auto_rollback(
+            rollback_status, _ = await self._auto_rollback(
                 intent_id=intent_id,
                 action_type=action_type,
                 rollback_reference=adapter_response.rollback_reference,
@@ -211,22 +211,12 @@ class ActionExecutor:
         if record is None:
             raise ValueError(f"No execution record found for intent_id={intent_id}")
 
-        rollback_status = await self._auto_rollback(
+        rollback_status, rollback_audit_id = await self._auto_rollback(
             intent_id=intent_id,
             action_type=record.action_type,
             rollback_reference=record.rollback_reference,
             execution_id=record.execution_id,
         )
-
-        audit_record = AuditRecord(
-            intent_id=intent_id,
-            stage=AuditStage.rollback,
-            input_summary={"execution_id": record.execution_id, "action_type": record.action_type},
-            output_summary={"rollback_status": rollback_status},
-            outcome=AuditOutcome.success if rollback_status == "success" else AuditOutcome.failure,
-            duration_ms=0,
-        )
-        await self._writer.write(audit_record)
 
         return {
             "intent_id": intent_id,
@@ -234,7 +224,7 @@ class ActionExecutor:
             "action_type": record.action_type,
             "rollback_status": rollback_status,
             "rolled_back_at": datetime.now(UTC).isoformat(),
-            "audit_record_id": str(audit_record.record_id),
+            "audit_record_id": rollback_audit_id,
         }
 
     # ── Private helpers ───────────────────────────────────────────────────
@@ -309,8 +299,8 @@ class ActionExecutor:
         action_type: str,
         rollback_reference: str | None,
         execution_id: str,
-    ) -> str:
-        """Attempt automatic rollback — ANIF-306 §8.1. Returns 'success' or 'failed'."""
+    ) -> tuple[str, str]:
+        """Attempt automatic rollback — ANIF-306 §8.1. Returns (rollback_status, audit_record_id)."""
         rollback_id = str(uuid.uuid4())
 
         await self._writer.write(
@@ -342,22 +332,21 @@ class ActionExecutor:
                 execution_id=execution_id,
             )
 
-        await self._writer.write(
-            AuditRecord(
-                intent_id=intent_id,
-                stage=AuditStage.rollback,
-                input_summary={
-                    "execution_id": execution_id,
-                    "action_type": action_type,
-                    "event": event,
-                },
-                output_summary={
-                    "rollback_status": rollback_status,
-                    "adapter_status_code": rb_response.adapter_status_code,
-                },
-                outcome=outcome,
-                duration_ms=0,
-            )
+        final_audit = AuditRecord(
+            intent_id=intent_id,
+            stage=AuditStage.rollback,
+            input_summary={
+                "execution_id": execution_id,
+                "action_type": action_type,
+                "event": event,
+            },
+            output_summary={
+                "rollback_status": rollback_status,
+                "adapter_status_code": rb_response.adapter_status_code,
+            },
+            outcome=outcome,
+            duration_ms=0,
         )
+        await self._writer.write(final_audit)
 
-        return rollback_status
+        return (rollback_status, str(final_audit.record_id))
