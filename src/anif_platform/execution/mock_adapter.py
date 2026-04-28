@@ -11,7 +11,11 @@ import random
 from datetime import UTC, datetime
 from typing import Any
 
+import structlog
+
 from anif_platform.execution.adapter import AdapterHealthStatus, AdapterResponse
+
+log = structlog.get_logger(__name__)
 
 # Mock success probabilities — ANIF-306 §10.1
 _SUCCESS_RATES: dict[str, float] = {
@@ -28,6 +32,9 @@ _FAILURE_CODES: dict[str, int] = {
     "scale_bandwidth": 503,
     "isolate_segment": 500,
 }
+
+_DEFAULT_SUCCESS_RATE: float = 0.90
+_DEFAULT_FAILURE_CODE: int = 503
 
 
 class MockNetworkAdapter:
@@ -61,7 +68,7 @@ class MockNetworkAdapter:
         execution_id: str,
     ) -> AdapterResponse:
         """Simulate executing an action — ANIF-306 §10.2 / §10.3."""
-        success_rate = _SUCCESS_RATES.get(action_type, 0.90)
+        success_rate = _SUCCESS_RATES.get(action_type, _DEFAULT_SUCCESS_RATE)
 
         if self._force_success:
             success = True
@@ -72,6 +79,12 @@ class MockNetworkAdapter:
 
         if success:
             segment_id = parameters.get("segment_id") or parameters.get("source_segment", "unknown")
+            log.debug(
+                "mock_adapter_execute",
+                action_type=action_type,
+                execution_id=execution_id,
+                success=True,
+            )
             return AdapterResponse(
                 success=True,
                 adapter_status_code=200,
@@ -80,9 +93,15 @@ class MockNetworkAdapter:
                 rollback_reference=f"mock-rollback-{execution_id}",
             )
 
+        log.debug(
+            "mock_adapter_execute",
+            action_type=action_type,
+            execution_id=execution_id,
+            success=False,
+        )
         return AdapterResponse(
             success=False,
-            adapter_status_code=_FAILURE_CODES.get(action_type, 503),
+            adapter_status_code=_FAILURE_CODES.get(action_type, _DEFAULT_FAILURE_CODE),
             adapter_message=f"Mock adapter simulated failure for action: {action_type}",
             applied_changes=[],
             rollback_reference=None,
@@ -100,6 +119,12 @@ class MockNetworkAdapter:
         Succeeds 100% of the time. If rollback_reference is None,
         no changes were applied so there is nothing to reverse.
         """
+        log.debug(
+            "mock_adapter_rollback",
+            action_type=action_type,
+            execution_id=execution_id,
+            success=True,
+        )
         if rollback_reference is None:
             return AdapterResponse(
                 success=True,

@@ -3,20 +3,35 @@
 from __future__ import annotations
 
 import uuid
-
-import pytest
+from typing import Any
 
 from anif_platform.execution.mock_adapter import MockNetworkAdapter
 
 ACTION_TYPES = ["reroute_traffic", "apply_qos", "scale_bandwidth", "isolate_segment"]
 
 
-def make_params(action_type: str) -> dict:
+def make_params(action_type: str) -> dict[str, Any]:
     extras = {
-        "reroute_traffic": {"source_segment": "seg-001", "target_segment": "seg-002", "routing_protocol": "BGP"},
-        "apply_qos": {"policy_name": "latency-prio", "traffic_class": "DSCP_EF", "bandwidth_guarantee_mbps": 100},
-        "scale_bandwidth": {"segment_id": "seg-001", "target_bandwidth_mbps": 500, "direction": "up"},
-        "isolate_segment": {"segment_id": "seg-001", "isolation_reason": "fault", "blast_radius_assessment": "low"},
+        "reroute_traffic": {
+            "source_segment": "seg-001",
+            "target_segment": "seg-002",
+            "routing_protocol": "BGP",
+        },
+        "apply_qos": {
+            "policy_name": "latency-prio",
+            "traffic_class": "DSCP_EF",
+            "bandwidth_guarantee_mbps": 100,
+        },
+        "scale_bandwidth": {
+            "segment_id": "seg-001",
+            "target_bandwidth_mbps": 500,
+            "direction": "up",
+        },
+        "isolate_segment": {
+            "segment_id": "seg-001",
+            "isolation_reason": "fault",
+            "blast_radius_assessment": "low",
+        },
     }
     return extras.get(action_type, {"segment_id": "seg-001"})
 
@@ -64,7 +79,9 @@ class TestMockAdapterFailurePath:
 
     def test_failure_message_mentions_action_type(self) -> None:
         adapter = MockNetworkAdapter(seed=42, force_failure=True)
-        response = adapter.execute("isolate_segment", make_params("isolate_segment"), str(uuid.uuid4()))
+        response = adapter.execute(
+            "isolate_segment", make_params("isolate_segment"), str(uuid.uuid4())
+        )
         assert "isolate_segment" in response.adapter_message
 
 
@@ -90,7 +107,9 @@ class TestMockAdapterSuccessRates:
         successes = sum(
             1
             for i in range(total)
-            if MockNetworkAdapter(seed=i).execute("apply_qos", make_params("apply_qos"), str(uuid.uuid4())).success
+            if MockNetworkAdapter(seed=i)
+            .execute("apply_qos", make_params("apply_qos"), str(uuid.uuid4()))
+            .success
         )
         assert successes / total >= 0.85
 
@@ -100,12 +119,16 @@ class TestMockAdapterSuccessRates:
         qos_successes = sum(
             1
             for i in range(total)
-            if MockNetworkAdapter(seed=i).execute("apply_qos", make_params("apply_qos"), str(uuid.uuid4())).success
+            if MockNetworkAdapter(seed=i)
+            .execute("apply_qos", make_params("apply_qos"), str(uuid.uuid4()))
+            .success
         )
         iso_successes = sum(
             1
             for i in range(total)
-            if MockNetworkAdapter(seed=i).execute("isolate_segment", make_params("isolate_segment"), str(uuid.uuid4())).success
+            if MockNetworkAdapter(seed=i)
+            .execute("isolate_segment", make_params("isolate_segment"), str(uuid.uuid4()))
+            .success
         )
         assert iso_successes <= qos_successes
 
