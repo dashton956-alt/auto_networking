@@ -31,13 +31,13 @@ from anif_platform.agents.schemas import (
 from anif_platform.schemas import AgentTier
 
 
-def make_registry() -> tuple[AgentRegistry, AsyncMock]:
+def make_registry() -> tuple[AgentRegistry, AsyncMock, AsyncMock]:
     session = AsyncMock()
     session.add = MagicMock()
     session.flush = AsyncMock()
     writer = AsyncMock()
     registry = AgentRegistry(session=session, writer=writer)
-    return registry, session
+    return registry, session, writer
 
 
 def make_mock_agent_row(
@@ -161,7 +161,7 @@ def test_register_agent_request_rejects_out_of_range_tier() -> None:
 
 @pytest.mark.asyncio
 async def test_register_creates_agent_in_proposed_state() -> None:
-    registry, session = make_registry()
+    registry, session, writer = make_registry()
     agent = await registry.register(
         agent_id="agent-001",
         agent_type="NetworkObserver",
@@ -176,7 +176,7 @@ async def test_register_creates_agent_in_proposed_state() -> None:
 
 @pytest.mark.asyncio
 async def test_register_computes_capabilities_hash() -> None:
-    registry, _ = make_registry()
+    registry, _, writer = make_registry()
     manifest = {"capabilities": ["read_telemetry"]}
     agent = await registry.register(
         agent_id="agent-001",
@@ -193,7 +193,7 @@ async def test_register_computes_capabilities_hash() -> None:
 
 @pytest.mark.asyncio
 async def test_transition_proposed_to_provisional_sets_provisional_until() -> None:
-    registry, session = make_registry()
+    registry, session, writer = make_registry()
 
     mock_agent = make_mock_agent_row("PROPOSED")
     result_mock = MagicMock()
@@ -216,7 +216,7 @@ async def test_transition_proposed_to_provisional_sets_provisional_until() -> No
 
 @pytest.mark.asyncio
 async def test_transition_provisional_to_active_blocked_before_72h() -> None:
-    registry, session = make_registry()
+    registry, session, writer = make_registry()
 
     future = datetime.now(UTC) + timedelta(hours=48)
     mock_agent = make_mock_agent_row("PROVISIONAL", provisional_until=future)
@@ -236,7 +236,7 @@ async def test_transition_provisional_to_active_blocked_before_72h() -> None:
 
 @pytest.mark.asyncio
 async def test_transition_provisional_to_active_succeeds_after_72h() -> None:
-    registry, session = make_registry()
+    registry, session, writer = make_registry()
 
     past = datetime.now(UTC) - timedelta(hours=1)
     mock_agent = make_mock_agent_row("PROVISIONAL", provisional_until=past)
@@ -256,7 +256,7 @@ async def test_transition_provisional_to_active_succeeds_after_72h() -> None:
 
 @pytest.mark.asyncio
 async def test_transition_decommissioned_raises_invalid() -> None:
-    registry, session = make_registry()
+    registry, session, writer = make_registry()
 
     mock_agent = make_mock_agent_row("DECOMMISSIONED")
     result_mock = MagicMock()
@@ -275,7 +275,7 @@ async def test_transition_decommissioned_raises_invalid() -> None:
 
 @pytest.mark.asyncio
 async def test_transition_to_decommissioned_writes_to_register() -> None:
-    registry, session = make_registry()
+    registry, session, writer = make_registry()
 
     mock_agent = make_mock_agent_row("ACTIVE")
     result_mock = MagicMock()
@@ -300,7 +300,7 @@ async def test_transition_to_decommissioned_writes_to_register() -> None:
 
 @pytest.mark.asyncio
 async def test_clear_working_context_sets_timestamp() -> None:
-    registry, session = make_registry()
+    registry, session, writer = make_registry()
 
     mock_agent = make_mock_agent_row("ACTIVE")
     result_mock = MagicMock()
@@ -314,7 +314,7 @@ async def test_clear_working_context_sets_timestamp() -> None:
 
 @pytest.mark.asyncio
 async def test_record_cert_stores_pem_and_expiry() -> None:
-    registry, session = make_registry()
+    registry, session, writer = make_registry()
     mock_agent = make_mock_agent_row("ACTIVE")
     mock_agent.certificate_pem = None
     mock_agent.certificate_expires_at = None
@@ -335,7 +335,7 @@ async def test_record_cert_stores_pem_and_expiry() -> None:
 @pytest.mark.asyncio
 async def test_transition_proposed_to_active_raises_invalid() -> None:
     """PROPOSED → ACTIVE is not a permitted transition."""
-    registry, session = make_registry()
+    registry, session, writer = make_registry()
     mock_agent = make_mock_agent_row("PROPOSED")
     result_mock = MagicMock()
     result_mock.scalar_one_or_none.return_value = mock_agent
@@ -354,7 +354,7 @@ async def test_transition_proposed_to_active_raises_invalid() -> None:
 @pytest.mark.asyncio
 async def test_transition_provisional_to_active_raises_when_provisional_until_is_none() -> None:
     """When provisional_until is None, 72h guard must block — not silently pass."""
-    registry, session = make_registry()
+    registry, session, writer = make_registry()
     mock_agent = make_mock_agent_row("PROVISIONAL", provisional_until=None)
     result_mock = MagicMock()
     result_mock.scalar_one_or_none.return_value = mock_agent
@@ -368,3 +368,28 @@ async def test_transition_provisional_to_active_raises_when_provisional_until_is
             approver_identity="ops",
             reason="Promote with null provisional_until",
         )
+
+
+@pytest.mark.asyncio
+async def test_register_writes_audit_record() -> None:
+    registry, session, writer = make_registry()
+    await registry.register(
+        agent_id="agent-001",
+        agent_type="NetworkObserver",
+        role="Network Observer",
+        tier=1,
+        manifest={"capabilities": ["read_telemetry"]},
+    )
+    writer.write.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_get_raises_agent_not_found_error() -> None:
+    registry, session, writer = make_registry()
+    result_mock = MagicMock()
+    result_mock.scalar_one_or_none.return_value = None  # agent not in DB
+    session.execute = AsyncMock(return_value=result_mock)
+
+    from anif_platform.agents.registry import AgentNotFoundError
+    with pytest.raises(AgentNotFoundError):
+        await registry.get("nonexistent-agent")

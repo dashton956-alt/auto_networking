@@ -22,6 +22,12 @@ from anif_platform.schemas.audit_record import AuditOutcome, AuditRecord, AuditS
 
 log = structlog.get_logger(__name__)
 
+
+def _agent_chain_id(agent_id: str) -> uuid.UUID:
+    """Derive stable audit chain UUID from agent_id — ANIF-107 §4.7."""
+    return uuid.uuid5(uuid.NAMESPACE_DNS, agent_id)
+
+
 _PROVISIONAL_HOURS: int = 72
 
 _VALID_TRANSITIONS: dict[AgentLifecycleState, frozenset[AgentLifecycleState]] = {
@@ -109,7 +115,7 @@ class AgentRegistry:
         await self._writer.write(
             AuditRecord(
                 stage=AuditStage.agent_lifecycle,
-                intent_id=uuid.uuid4(),
+                intent_id=_agent_chain_id(agent_id),
                 input_summary={"agent_id": agent_id, "tier": tier, "role": role},
                 output_summary={"lifecycle_state": AgentLifecycleState.PROPOSED.value},
                 outcome=AuditOutcome.success,
@@ -208,7 +214,7 @@ class AgentRegistry:
         await self._writer.write(
             AuditRecord(
                 stage=AuditStage.agent_lifecycle,
-                intent_id=uuid.uuid4(),
+                intent_id=_agent_chain_id(agent_id),
                 input_summary={"agent_id": agent_id, "trigger": trigger},
                 output_summary={
                     "previous_state": current_state.value,
@@ -241,7 +247,7 @@ class AgentRegistry:
         await self._writer.write(
             AuditRecord(
                 stage=AuditStage.agent_lifecycle,
-                intent_id=uuid.uuid4(),
+                intent_id=_agent_chain_id(agent_id),
                 input_summary={"agent_id": agent_id, "intent_id": intent_id},
                 output_summary={"action": "working_context_cleared"},
                 outcome=AuditOutcome.success,
@@ -261,3 +267,13 @@ class AgentRegistry:
         agent.certificate_expires_at = certificate_expires_at
         await self._session.flush()
         log.info("agent_cert_recorded", agent_id=agent_id, expires_at=certificate_expires_at.isoformat())
+        await self._writer.write(
+            AuditRecord(
+                intent_id=_agent_chain_id(agent_id),
+                stage=AuditStage.agent_lifecycle,
+                input_summary={"agent_id": agent_id},
+                output_summary={"certificate_expires_at": certificate_expires_at.isoformat()},
+                outcome=AuditOutcome.success,
+                duration_ms=0,
+            )
+        )
