@@ -76,9 +76,9 @@ async def orchestrate(
     """
     Run the full ANIF pipeline for an intent.
 
-    Stages not yet built (risk, decision, governance, execute) return stubs.
-    Governance checks are enforced even in stub form — the pipeline will not
-    proceed past governance without a clearance record (ANIF-300 §5).
+    All stages are live: validate → policy → risk → decision → governance → execute.
+    Governance and execution enforce precondition checks and write audit records
+    before returning (ANIF-300 §5, ANIF-306 §5).
     """
     pipeline_result: dict[str, Any] = {}
 
