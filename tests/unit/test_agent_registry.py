@@ -1,11 +1,25 @@
 """Unit tests for AgentRegistry and DB models — ANIF-803, ANIF-805."""
 from __future__ import annotations
 
+import hashlib
+import json
+from datetime import UTC, datetime, timedelta
+from unittest.mock import AsyncMock, MagicMock
+
+import pytest
+from pydantic import ValidationError
+
 from anif_platform.agents.models import (
     AgentLifecycleEventRow,
     AgentRegistryRow,
     AgentRevocationRow,
     DecommissionedIdentityRow,
+)
+from anif_platform.agents.registry import (
+    AgentNotFoundError,
+    AgentRegistry,
+    InvalidTransitionError,
+    ProvisionalPeriodError,
 )
 from anif_platform.agents.schemas import (
     AgentLifecycleState,
@@ -15,6 +29,33 @@ from anif_platform.agents.schemas import (
     TransitionResponse,
 )
 from anif_platform.schemas import AgentTier
+
+
+def make_registry() -> tuple[AgentRegistry, AsyncMock]:
+    session = AsyncMock()
+    session.add = MagicMock()
+    session.flush = AsyncMock()
+    writer = AsyncMock()
+    registry = AgentRegistry(session=session, writer=writer)
+    return registry, session
+
+
+def make_mock_agent_row(
+    lifecycle_state: str = "PROPOSED",
+    provisional_until: datetime | None = None,
+    tier: int = 1,
+) -> MagicMock:
+    row = MagicMock()
+    row.agent_id = "agent-001"
+    row.agent_type = "NetworkObserver"
+    row.role = "Network Observer"
+    row.tier = tier
+    row.lifecycle_state = lifecycle_state
+    row.provisional_until = provisional_until
+    row.strike_count = 0
+    row.capabilities_hash = "abc123"
+    row.manifest_json = json.dumps({"capabilities": ["read_telemetry"]})
+    return row
 
 
 def test_agent_registry_row_has_required_columns() -> None:
@@ -108,8 +149,6 @@ def test_transition_request_requires_all_fields() -> None:
 
 
 def test_register_agent_request_rejects_out_of_range_tier() -> None:
-    import pytest
-    from pydantic import ValidationError
     with pytest.raises(ValidationError):
         RegisterAgentRequest(
             agent_id="agent-001",
@@ -118,47 +157,6 @@ def test_register_agent_request_rejects_out_of_range_tier() -> None:
             tier=4,
             manifest={},
         )
-
-
-# === Task 3: AgentRegistry service tests ===
-import json
-from datetime import UTC, datetime, timedelta
-from unittest.mock import AsyncMock, MagicMock
-
-import pytest
-
-from anif_platform.agents.registry import (
-    AgentRegistry,
-    InvalidTransitionError,
-    ProvisionalPeriodError,
-)
-from anif_platform.agents.schemas import AgentLifecycleState
-
-
-def make_registry() -> tuple[AgentRegistry, AsyncMock]:
-    session = AsyncMock()
-    session.add = MagicMock()
-    session.flush = AsyncMock()
-    registry = AgentRegistry(session=session)
-    return registry, session
-
-
-def make_mock_agent_row(
-    lifecycle_state: str = "PROPOSED",
-    provisional_until: datetime | None = None,
-    tier: int = 1,
-) -> MagicMock:
-    row = MagicMock()
-    row.agent_id = "agent-001"
-    row.agent_type = "NetworkObserver"
-    row.role = "Network Observer"
-    row.tier = tier
-    row.lifecycle_state = lifecycle_state
-    row.provisional_until = provisional_until
-    row.strike_count = 0
-    row.capabilities_hash = "abc123"
-    row.manifest_json = json.dumps({"capabilities": ["read_telemetry"]})
-    return row
 
 
 @pytest.mark.asyncio
@@ -178,8 +176,6 @@ async def test_register_creates_agent_in_proposed_state() -> None:
 
 @pytest.mark.asyncio
 async def test_register_computes_capabilities_hash() -> None:
-    import hashlib
-
     registry, _ = make_registry()
     manifest = {"capabilities": ["read_telemetry"]}
     agent = await registry.register(
@@ -314,3 +310,61 @@ async def test_clear_working_context_sets_timestamp() -> None:
     await registry.clear_working_context(agent_id="agent-001", intent_id="intent-xyz")
     assert mock_agent.working_context_cleared_at is not None
     assert mock_agent.last_intent_id == "intent-xyz"
+
+
+@pytest.mark.asyncio
+async def test_record_cert_stores_pem_and_expiry() -> None:
+    registry, session = make_registry()
+    mock_agent = make_mock_agent_row("ACTIVE")
+    mock_agent.certificate_pem = None
+    mock_agent.certificate_expires_at = None
+    result_mock = MagicMock()
+    result_mock.scalar_one_or_none.return_value = mock_agent
+    session.execute = AsyncMock(return_value=result_mock)
+
+    expires = datetime.now(UTC) + timedelta(days=90)
+    await registry.record_cert(
+        agent_id="agent-001",
+        certificate_pem="-----BEGIN CERTIFICATE-----\nMOCK\n-----END CERTIFICATE-----",
+        certificate_expires_at=expires,
+    )
+    assert mock_agent.certificate_pem is not None
+    assert mock_agent.certificate_expires_at == expires
+
+
+@pytest.mark.asyncio
+async def test_transition_proposed_to_active_raises_invalid() -> None:
+    """PROPOSED → ACTIVE is not a permitted transition."""
+    registry, session = make_registry()
+    mock_agent = make_mock_agent_row("PROPOSED")
+    result_mock = MagicMock()
+    result_mock.scalar_one_or_none.return_value = mock_agent
+    session.execute = AsyncMock(return_value=result_mock)
+
+    with pytest.raises(InvalidTransitionError):
+        await registry.transition(
+            agent_id="agent-001",
+            new_state=AgentLifecycleState.ACTIVE,
+            trigger="test",
+            approver_identity="ops",
+            reason="Skip PROVISIONAL",
+        )
+
+
+@pytest.mark.asyncio
+async def test_transition_provisional_to_active_raises_when_provisional_until_is_none() -> None:
+    """When provisional_until is None, 72h guard must block — not silently pass."""
+    registry, session = make_registry()
+    mock_agent = make_mock_agent_row("PROVISIONAL", provisional_until=None)
+    result_mock = MagicMock()
+    result_mock.scalar_one_or_none.return_value = mock_agent
+    session.execute = AsyncMock(return_value=result_mock)
+
+    with pytest.raises(ProvisionalPeriodError):
+        await registry.transition(
+            agent_id="agent-001",
+            new_state=AgentLifecycleState.ACTIVE,
+            trigger="manual",
+            approver_identity="ops",
+            reason="Promote with null provisional_until",
+        )

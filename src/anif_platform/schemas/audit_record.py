@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from enum import Enum
-from typing import Annotated, Any, Optional
+from typing import Annotated, Any
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field, field_validator, model_validator
@@ -20,6 +20,7 @@ class AuditStage(str, Enum):
     governance = "governance"
     execute = "execute"
     rollback = "rollback"
+    agent_lifecycle = "agent_lifecycle"
 
 
 class AuditOutcome(str, Enum):
@@ -44,7 +45,7 @@ class PostVerificationOutcome(str, Enum):
     pending = "pending"
 
     @classmethod
-    def _missing_(cls, value: object) -> Optional[PostVerificationOutcome]:
+    def _missing_(cls, value: object) -> PostVerificationOutcome | None:
         if value == "pass":
             return cls.pass_
         return None
@@ -108,7 +109,7 @@ class ReasoningStep(BaseModel):
     step: int
     description: str
     decision: str
-    rationale: Optional[str] = None
+    rationale: str | None = None
 
 
 # Stages that MUST have a non-empty reasoning_chain (ANIF-107 §4.2.2)
@@ -134,7 +135,7 @@ class AuditRecord(BaseModel):
         default_factory=lambda: datetime.now(UTC)
     )
     stage: AuditStage
-    operator_id: Optional[str] = None
+    operator_id: str | None = None
     input_summary: dict[str, Any]
     output_summary: dict[str, Any]
     outcome: AuditOutcome
@@ -142,80 +143,80 @@ class AuditRecord(BaseModel):
     duration_ms: Annotated[int, Field(ge=0)]
 
     # ── Hash chain fields (set by AuditWriter only) ───────────────────────
-    record_hash: Optional[str] = None
-    prev_hash: Optional[str] = None
-    chain_id: Optional[UUID] = None
+    record_hash: str | None = None
+    prev_hash: str | None = None
+    chain_id: UUID | None = None
 
     # ── Stage-specific additional fields (ANIF-107 §4.2.1) ───────────────
     # governance stage
-    governance_mode: Optional[GovernanceMode] = None
-    ticket_id: Optional[UUID] = None
-    applied_policies: Optional[list[str]] = None
+    governance_mode: GovernanceMode | None = None
+    ticket_id: UUID | None = None
+    applied_policies: list[str] | None = None
 
     # execute stage
-    action_type: Optional[str] = None
-    target: Optional[str] = None
-    rollback_available: Optional[bool] = None
-    post_verification_outcome: Optional[PostVerificationOutcome] = None
+    action_type: str | None = None
+    target: str | None = None
+    rollback_available: bool | None = None
+    post_verification_outcome: PostVerificationOutcome | None = None
 
     # rollback stage
-    original_execute_record_id: Optional[UUID] = None
-    rollback_reason: Optional[str] = None
-    rollback_outcome: Optional[RollbackOutcome] = None
+    original_execute_record_id: UUID | None = None
+    rollback_reason: str | None = None
+    rollback_outcome: RollbackOutcome | None = None
 
     # policy stage
-    policies_evaluated: Optional[list[str]] = None
-    policies_violated: Optional[list[str]] = None
+    policies_evaluated: list[str] | None = None
+    policies_violated: list[str] | None = None
 
     # risk stage
-    risk_score: Optional[Annotated[int, Field(ge=0, le=100)]] = None
-    risk_factors: Optional[list[str]] = None
+    risk_score: Annotated[int, Field(ge=0, le=100)] | None = None
+    risk_factors: list[str] | None = None
 
     # ── Ethics extension fields (ANIF-724 §4) ────────────────────────────
     # Agent identity
-    agent_id: Optional[UUID] = None
-    agent_version: Optional[str] = None
-    agent_tier: Optional[AgentTier] = None
-    agent_trust_level: Optional[AgentTrustLevel] = None
+    agent_id: UUID | None = None
+    agent_version: str | None = None
+    agent_tier: AgentTier | None = None
+    agent_trust_level: AgentTrustLevel | None = None
 
     # Determinism
-    deterministic: Optional[bool] = None
-    llm_used: Optional[bool] = None
-    llm_model_id: Optional[str] = None
-    shadow_used_as_substitution: Optional[bool] = None
+    deterministic: bool | None = None
+    llm_used: bool | None = None
+    llm_model_id: str | None = None
+    shadow_used_as_substitution: bool | None = None
 
     # LLM audit
-    llm_prompt_hash: Optional[str] = None
-    llm_prompt_length_tokens: Optional[int] = None
-    llm_confidence_score: Optional[float] = None
-    llm_validation_stage1: Optional[LLMValidationResult] = None
-    llm_validation_stage2: Optional[LLMValidationResult] = None
-    llm_validation_stage3: Optional[LLMValidationResult] = None
-    llm_validation_stage4: Optional[LLMValidationResult] = None
+    llm_prompt_hash: str | None = None
+    llm_prompt_length_tokens: int | None = None
+    llm_confidence_score: float | None = None
+    llm_validation_stage1: LLMValidationResult | None = None
+    llm_validation_stage2: LLMValidationResult | None = None
+    llm_validation_stage3: LLMValidationResult | None = None
+    llm_validation_stage4: LLMValidationResult | None = None
 
     # Fairness audit
-    fairness_check_result: Optional[FairnessResult] = None
-    fairness_freshness_gate_result: Optional[LLMValidationResult] = None
-    reproducibility_check_result: Optional[ReproducibilityResult] = None
-    ai_shadow_divergence: Optional[float] = None
+    fairness_check_result: FairnessResult | None = None
+    fairness_freshness_gate_result: LLMValidationResult | None = None
+    reproducibility_check_result: ReproducibilityResult | None = None
+    ai_shadow_divergence: float | None = None
 
     # Harm classification
-    harm_class: Optional[HarmClass] = None
-    harm_severity_score: Optional[Annotated[int, Field(ge=0, le=100)]] = None
-    blast_radius_segment_count: Optional[int] = None
-    harm_gate_outcome: Optional[HarmGateOutcome] = None
-    simulation_completed: Optional[bool] = None
+    harm_class: HarmClass | None = None
+    harm_severity_score: Annotated[int, Field(ge=0, le=100)] | None = None
+    blast_radius_segment_count: int | None = None
+    harm_gate_outcome: HarmGateOutcome | None = None
+    simulation_completed: bool | None = None
 
     # Accountability chain
-    accountability_designer_id: Optional[str] = None
-    accountability_deployer_id: Optional[str] = None
-    accountability_operator_id: Optional[str] = None
-    accountability_approver_id: Optional[str] = None
+    accountability_designer_id: str | None = None
+    accountability_deployer_id: str | None = None
+    accountability_operator_id: str | None = None
+    accountability_approver_id: str | None = None
 
     # Ethics gate results
-    ethics_gates_passed: Optional[list[str]] = None
-    ethics_gates_failed: Optional[list[str]] = None
-    ethics_gates_skipped: Optional[list[str]] = None
+    ethics_gates_passed: list[str] | None = None
+    ethics_gates_failed: list[str] | None = None
+    ethics_gates_skipped: list[str] | None = None
 
     @field_validator("timestamp")
     @classmethod

@@ -17,6 +17,8 @@ from anif_platform.agents.models import (
     DecommissionedIdentityRow,
 )
 from anif_platform.agents.schemas import AgentLifecycleState
+from anif_platform.audit.writer import AuditWriter
+from anif_platform.schemas.audit_record import AuditOutcome, AuditRecord, AuditStage
 
 log = structlog.get_logger(__name__)
 
@@ -67,8 +69,9 @@ class AgentNotFoundError(Exception):
 class AgentRegistry:
     """Manages agent lifecycle and permitted persistent state — ANIF-803, ANIF-805."""
 
-    def __init__(self, session: AsyncSession) -> None:
+    def __init__(self, session: AsyncSession, writer: AuditWriter) -> None:
         self._session = session
+        self._writer = writer
 
     async def register(
         self,
@@ -103,6 +106,16 @@ class AgentRegistry:
         self._session.add(agent)
         await self._session.flush()
         log.info("agent_registered", agent_id=agent_id, tier=tier, role=role)
+        await self._writer.write(
+            AuditRecord(
+                stage=AuditStage.agent_lifecycle,
+                intent_id=uuid.uuid4(),
+                input_summary={"agent_id": agent_id, "tier": tier, "role": role},
+                output_summary={"lifecycle_state": AgentLifecycleState.PROPOSED.value},
+                outcome=AuditOutcome.success,
+                duration_ms=0,
+            )
+        )
         return agent
 
     async def get(self, agent_id: str) -> AgentRegistryRow:
@@ -142,9 +155,14 @@ class AgentRegistry:
             current_state == AgentLifecycleState.PROVISIONAL
             and new_state == AgentLifecycleState.ACTIVE
         ):
-            if agent.provisional_until and datetime.now(UTC) < agent.provisional_until:
+            if agent.provisional_until is None or datetime.now(UTC) < agent.provisional_until:
+                until_str = (
+                    agent.provisional_until.isoformat()
+                    if agent.provisional_until is not None
+                    else "unknown (provisional_until not set)"
+                )
                 raise ProvisionalPeriodError(
-                    f"Agent must remain PROVISIONAL until {agent.provisional_until.isoformat()}"
+                    f"Agent must remain PROVISIONAL until {until_str}"
                 )
 
         now = datetime.now(UTC)
@@ -187,6 +205,19 @@ class AgentRegistry:
             new_state=new_state.value,
             trigger=trigger,
         )
+        await self._writer.write(
+            AuditRecord(
+                stage=AuditStage.agent_lifecycle,
+                intent_id=uuid.uuid4(),
+                input_summary={"agent_id": agent_id, "trigger": trigger},
+                output_summary={
+                    "previous_state": current_state.value,
+                    "new_state": new_state.value,
+                },
+                outcome=AuditOutcome.success,
+                duration_ms=0,
+            )
+        )
         return event
 
     async def list_active(self) -> list[AgentRegistryRow]:
@@ -207,6 +238,16 @@ class AgentRegistry:
         agent.last_intent_at = now
         await self._session.flush()
         log.info("agent_working_context_cleared", agent_id=agent_id, intent_id=intent_id)
+        await self._writer.write(
+            AuditRecord(
+                stage=AuditStage.agent_lifecycle,
+                intent_id=uuid.uuid4(),
+                input_summary={"agent_id": agent_id, "intent_id": intent_id},
+                output_summary={"action": "working_context_cleared"},
+                outcome=AuditOutcome.success,
+                duration_ms=0,
+            )
+        )
 
     async def record_cert(
         self,
@@ -219,3 +260,4 @@ class AgentRegistry:
         agent.certificate_pem = certificate_pem
         agent.certificate_expires_at = certificate_expires_at
         await self._session.flush()
+        log.info("agent_cert_recorded", agent_id=agent_id, expires_at=certificate_expires_at.isoformat())
