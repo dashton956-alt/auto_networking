@@ -160,16 +160,16 @@ class AgentRegistry:
         if (
             current_state == AgentLifecycleState.PROVISIONAL
             and new_state == AgentLifecycleState.ACTIVE
+            and (agent.provisional_until is None or datetime.now(UTC) < agent.provisional_until)
         ):
-            if agent.provisional_until is None or datetime.now(UTC) < agent.provisional_until:
-                until_str = (
-                    agent.provisional_until.isoformat()
-                    if agent.provisional_until is not None
-                    else "unknown (provisional_until not set)"
-                )
-                raise ProvisionalPeriodError(
-                    f"Agent must remain PROVISIONAL until {until_str}"
-                )
+            until_str = (
+                agent.provisional_until.isoformat()
+                if agent.provisional_until is not None
+                else "unknown (provisional_until not set)"
+            )
+            raise ProvisionalPeriodError(
+                f"Agent must remain PROVISIONAL until {until_str}"
+            )
 
         now = datetime.now(UTC)
         event = AgentLifecycleEventRow(

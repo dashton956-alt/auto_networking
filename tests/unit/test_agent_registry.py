@@ -24,9 +24,7 @@ from anif_platform.agents.registry import (
 from anif_platform.agents.schemas import (
     AgentLifecycleState,
     RegisterAgentRequest,
-    RegisterAgentResponse,
     TransitionRequest,
-    TransitionResponse,
 )
 from anif_platform.schemas import AgentTier
 
@@ -390,6 +388,5 @@ async def test_get_raises_agent_not_found_error() -> None:
     result_mock.scalar_one_or_none.return_value = None  # agent not in DB
     session.execute = AsyncMock(return_value=result_mock)
 
-    from anif_platform.agents.registry import AgentNotFoundError
     with pytest.raises(AgentNotFoundError):
         await registry.get("nonexistent-agent")
