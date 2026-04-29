@@ -1,11 +1,11 @@
 """
-Orchestrator — full pipeline skeleton with stubs for unbuilt stages.
+Orchestrator — full pipeline.
 
 POST /orchestrate chains:
-  validate → policy → [risk stub] → [decision stub] → [governance stub] → [execute stub]
+  validate → policy → risk → decision → governance → execute
 
-Stub stages return {"status": "not_yet_implemented", "stage": "<name>"}
-and are replaced when B3–B5 are built.
+All stages are implemented (B2–B5). Governance and execution stages
+enforce precondition checks and write audit records before returning.
 """
 
 from __future__ import annotations
@@ -14,13 +14,13 @@ import time
 import uuid
 from typing import Any
 
+import structlog
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
 from anif_platform.audit.writer import AuditWriter
 from anif_platform.auth import get_api_key
 from anif_platform.execution.executor import ActionExecutor, PreconditionError
-from anif_platform.execution.router import get_action_executor
 from anif_platform.governance.gate import GovernanceGate
 from anif_platform.human_loop.queue import ApprovalQueue
 from anif_platform.intent.registry import IntentRegistry
@@ -33,6 +33,8 @@ from anif_platform.schemas.audit_record import AuditOutcome, AuditRecord, AuditS
 from anif_platform.schemas.intent import Intent
 
 router = APIRouter(tags=["pipeline"])
+
+log = structlog.get_logger(__name__)
 
 
 def get_policy_engine() -> PolicyEngine:
@@ -49,6 +51,10 @@ def get_approval_queue() -> ApprovalQueue:
 
 def get_audit_writer() -> AuditWriter:
     raise NotImplementedError("Provide AuditWriter via dependency injection")
+
+
+def get_action_executor() -> ActionExecutor:
+    raise NotImplementedError("Provide ActionExecutor via dependency injection")
 
 
 class OrchestrateRequest(BaseModel):
@@ -331,6 +337,12 @@ async def orchestrate(
     else:
         pipeline_result["execute"] = {"status": "dry_run", "stage": "execute"}
 
+    log.info(
+        "pipeline_complete",
+        intent_id=str(intent_id),
+        dry_run=request.dry_run,
+        stages=list(pipeline_result.keys()),
+    )
     return {
         "status": "pipeline_complete",
         "intent_id": str(intent_id),
