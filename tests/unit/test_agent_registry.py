@@ -7,6 +7,14 @@ from anif_platform.agents.models import (
     AgentRevocationRow,
     DecommissionedIdentityRow,
 )
+from anif_platform.agents.schemas import (
+    AgentLifecycleState,
+    AgentTier,
+    RegisterAgentRequest,
+    RegisterAgentResponse,
+    TransitionRequest,
+    TransitionResponse,
+)
 
 
 def test_agent_registry_row_has_required_columns() -> None:
@@ -58,3 +66,42 @@ def test_agent_revocation_row_has_required_columns() -> None:
     assert "agent_id" in cols
     assert "revoked_at" in cols
     assert "reason" in cols
+
+
+def test_lifecycle_state_enum_has_all_states() -> None:
+    states = {s.value for s in AgentLifecycleState}
+    assert "PROPOSED" in states
+    assert "PROVISIONAL" in states
+    assert "ACTIVE" in states
+    assert "DEGRADED" in states
+    assert "DECOMMISSIONED" in states
+    assert "UNTRUSTED" in states
+
+
+def test_agent_tier_enum_has_all_tiers() -> None:
+    tiers = {t.value for t in AgentTier}
+    assert 0 in tiers
+    assert 1 in tiers
+    assert 2 in tiers
+    assert 3 in tiers
+
+
+def test_register_agent_request_validates_tier() -> None:
+    req = RegisterAgentRequest(
+        agent_id="agent-001",
+        agent_type="NetworkObserver",
+        role="Network Observer",
+        tier=1,
+        manifest={"capabilities": ["read_telemetry"]},
+    )
+    assert req.tier == 1
+
+
+def test_transition_request_requires_all_fields() -> None:
+    req = TransitionRequest(
+        new_state=AgentLifecycleState.PROVISIONAL,
+        trigger="council_approval",
+        approver_identity="council-member-1",
+        reason="Initial approval after review",
+    )
+    assert req.new_state == AgentLifecycleState.PROVISIONAL
