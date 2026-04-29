@@ -23,7 +23,7 @@ def upgrade() -> None:
         sa.Column("role", sa.String(), nullable=False),
         sa.Column("tier", sa.Integer(), nullable=False),
         sa.Column("lifecycle_state", sa.String(), nullable=False),
-        sa.Column("strike_count", sa.Integer(), nullable=False),
+        sa.Column("strike_count", sa.Integer(), nullable=False, server_default="0"),
         sa.Column("provisional_until", sa.DateTime(timezone=True), nullable=True),
         sa.Column("capabilities_hash", sa.String(), nullable=False),
         sa.Column("certificate_pem", sa.Text(), nullable=True),
@@ -47,7 +47,7 @@ def upgrade() -> None:
         sa.Column("transitioned_at", sa.DateTime(timezone=True), nullable=False),
         sa.PrimaryKeyConstraint("event_id"),
     )
-    op.create_index("ix_lifecycle_events_agent_id", "agent_lifecycle_events", ["agent_id"])
+    op.create_index("ix_agent_lifecycle_events_agent_id", "agent_lifecycle_events", ["agent_id"])
     op.create_table(
         "decommissioned_identities",
         sa.Column("record_id", sa.String(), nullable=False),
@@ -71,14 +71,14 @@ def upgrade() -> None:
         sa.Column("reason", sa.Text(), nullable=False),
         sa.PrimaryKeyConstraint("revocation_id"),
     )
-    op.create_index("ix_revocation_list_agent_id", "agent_revocation_list", ["agent_id"])
+    op.create_index("ix_agent_revocation_list_agent_id", "agent_revocation_list", ["agent_id"])
 
 
 def downgrade() -> None:
-    op.drop_index("ix_revocation_list_agent_id", table_name="agent_revocation_list")
+    op.drop_index("ix_agent_revocation_list_agent_id", table_name="agent_revocation_list")
     op.drop_table("agent_revocation_list")
     op.drop_index("ix_decommissioned_identities_agent_id", table_name="decommissioned_identities")
     op.drop_table("decommissioned_identities")
-    op.drop_index("ix_lifecycle_events_agent_id", table_name="agent_lifecycle_events")
+    op.drop_index("ix_agent_lifecycle_events_agent_id", table_name="agent_lifecycle_events")
     op.drop_table("agent_lifecycle_events")
     op.drop_table("agent_registry")
