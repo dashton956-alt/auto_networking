@@ -1,1 +1,1 @@
-"""ANIF Platform module — implementation pending."""
+"""ANIF agent infrastructure — lifecycle, certificates, and tier boundary enforcement."""
