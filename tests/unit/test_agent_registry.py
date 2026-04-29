@@ -9,12 +9,12 @@ from anif_platform.agents.models import (
 )
 from anif_platform.agents.schemas import (
     AgentLifecycleState,
-    AgentTier,
     RegisterAgentRequest,
     RegisterAgentResponse,
     TransitionRequest,
     TransitionResponse,
 )
+from anif_platform.schemas import AgentTier
 
 
 def test_agent_registry_row_has_required_columns() -> None:
@@ -105,3 +105,16 @@ def test_transition_request_requires_all_fields() -> None:
         reason="Initial approval after review",
     )
     assert req.new_state == AgentLifecycleState.PROVISIONAL
+
+
+def test_register_agent_request_rejects_out_of_range_tier() -> None:
+    import pytest
+    from pydantic import ValidationError
+    with pytest.raises(ValidationError):
+        RegisterAgentRequest(
+            agent_id="agent-001",
+            agent_type="NetworkObserver",
+            role="Network Observer",
+            tier=4,
+            manifest={},
+        )

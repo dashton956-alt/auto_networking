@@ -19,15 +19,6 @@ class AgentLifecycleState(str, Enum):
     UNTRUSTED = "UNTRUSTED"
 
 
-class AgentTier(int, Enum):
-    """Agent tier classification — ANIF-801 §4–7."""
-
-    TIER_0 = 0
-    TIER_1 = 1
-    TIER_2 = 2
-    TIER_3 = 3
-
-
 class RegisterAgentRequest(BaseModel):
     agent_id: str = Field(..., description="Unique agent instance identifier")
     agent_type: str = Field(..., description="Registered agent type from ANIF-801 catalogue")
@@ -39,13 +30,13 @@ class RegisterAgentRequest(BaseModel):
 class RegisterAgentResponse(BaseModel):
     agent_id: str
     lifecycle_state: AgentLifecycleState
-    provisional_until: datetime | None
-    certificate_pem: str | None
+    provisional_until: datetime | None = None
+    certificate_pem: str | None = None
     registered_at: datetime
 
 
 class TransitionRequest(BaseModel):
-    new_state: AgentLifecycleState
+    new_state: AgentLifecycleState = Field(..., description="Target lifecycle state")
     trigger: str = Field(..., description="Event that caused the transition")
     approver_identity: str = Field(..., description="Identity of the approving operator")
     reason: str = Field(..., description="Human-readable reason for transition")
@@ -66,12 +57,12 @@ class AgentDetailResponse(BaseModel):
     tier: int
     lifecycle_state: AgentLifecycleState
     strike_count: int
-    provisional_until: datetime | None
+    provisional_until: datetime | None = None
     capabilities_hash: str
-    certificate_expires_at: datetime | None
-    last_intent_id: str | None
-    last_intent_at: datetime | None
-    working_context_cleared_at: datetime | None
+    certificate_expires_at: datetime | None = None
+    last_intent_id: str | None = None
+    last_intent_at: datetime | None = None
+    working_context_cleared_at: datetime | None = None
     registered_at: datetime
 
 
