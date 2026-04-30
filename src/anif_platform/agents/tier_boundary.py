@@ -15,6 +15,7 @@ _ENDPOINT_TIER_REQUIREMENTS: dict[str, int] = {
 }
 
 _DEFAULT_REQUIRED_TIER: int = 0
+_TIER_VIOLATION_SEVERITY: int = 2  # ANIF-843 §6.3
 
 
 class TierBoundaryChecker:
@@ -34,7 +35,7 @@ class TierBoundaryChecker:
         """Log a Severity 2 tier boundary violation — ANIF-843 §6.3."""
         log.warning(
             "tier_boundary_violation",
-            severity=2,
+            severity=_TIER_VIOLATION_SEVERITY,
             agent_id=agent_id,
             agent_tier=agent_tier,
             endpoint_category=endpoint_category,
