@@ -3,8 +3,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Annotated, Optional
-from uuid import UUID
+from typing import Annotated, Any
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -38,17 +37,17 @@ class Priority(str, Enum):
 class Objectives(BaseModel):
     """Measurable outcome targets the service must meet."""
 
-    latency_ms: Optional[Annotated[float, Field(ge=1)]] = None
-    availability_percent: Optional[Annotated[float, Field(ge=90, le=100)]] = None
-    throughput_mbps: Optional[float] = None
+    latency_ms: Annotated[float, Field(ge=1)] | None = None
+    availability_percent: Annotated[float, Field(ge=90, le=100)] | None = None
+    throughput_mbps: float | None = None
 
 
 class Constraints(BaseModel):
     """Hard constraints the implementation must respect."""
 
-    region: Optional[Region] = None
-    encryption: Optional[bool] = None
-    allowed_zones: Optional[list[str]] = None
+    region: Region | None = None
+    encryption: bool | None = None
+    allowed_zones: list[str] | None = None
 
 
 class Intent(BaseModel):
@@ -65,13 +64,13 @@ class Intent(BaseModel):
     service: str
     objectives: Objectives
     constraints: Constraints
-    environment: Optional[Environment] = None
-    policies: Optional[list[PolicyName]] = None
-    priority: Optional[Priority] = None
+    environment: Environment | None = None
+    policies: list[PolicyName] | None = None
+    priority: Priority | None = None
 
     @model_validator(mode="before")
     @classmethod
-    def reject_author_supplied_intent_id(cls, values: dict) -> dict:
+    def reject_author_supplied_intent_id(cls, values: dict[str, Any]) -> dict[str, Any]:
         """ANIF-300 §4.4: author-supplied intent_id MUST be rejected."""
         if "intent_id" in values:
             raise ValueError(

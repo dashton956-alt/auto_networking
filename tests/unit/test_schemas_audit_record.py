@@ -1,7 +1,7 @@
 """Tests for AuditRecord Pydantic model — ANIF-107, ANIF-600 §4.5, ANIF-724."""
 
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC
 
 import pytest
 from pydantic import ValidationError

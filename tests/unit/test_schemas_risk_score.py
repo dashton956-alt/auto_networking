@@ -5,7 +5,6 @@ from pydantic import ValidationError
 
 from anif_platform.schemas.risk_score import RiskScore, SafetyDecision, ThresholdApplied
 
-
 DEFAULT_THRESHOLD = ThresholdApplied(warn_threshold=40, block_threshold=70, profile="default")
 
 

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Annotated
+from typing import Annotated, Any
 
 from pydantic import BaseModel, Field, computed_field, model_validator
 
@@ -39,7 +39,7 @@ class RiskScore(BaseModel):
 
     @model_validator(mode="before")
     @classmethod
-    def reject_caller_supplied_safety_decision(cls, values: dict) -> dict:
+    def reject_caller_supplied_safety_decision(cls, values: dict[str, Any]) -> dict[str, Any]:
         """ANIF-600 §5.4: safety_decision MUST NOT be set arbitrarily."""
         if "safety_decision" in values:
             raise ValueError(
@@ -48,7 +48,7 @@ class RiskScore(BaseModel):
             )
         return values
 
-    @computed_field  # type: ignore[misc]
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def safety_decision(self) -> SafetyDecision:
         """

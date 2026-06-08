@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Annotated, Optional
+from typing import Annotated
 
 from pydantic import BaseModel, Field
 
@@ -17,8 +17,8 @@ class RuleAction(str, Enum):
 class PolicyRule(BaseModel):
     """A single conditional rule within a policy."""
 
-    condition: Optional[str] = None
-    action: Optional[RuleAction] = None
+    condition: str | None = None
+    action: RuleAction | None = None
 
 
 class Policy(BaseModel):

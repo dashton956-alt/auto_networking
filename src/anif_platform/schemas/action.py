@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel
 
@@ -30,5 +30,5 @@ class Action(BaseModel):
     """
 
     action_type: ActionType
-    parameters: Optional[dict[str, Any]] = None
-    risk_level: Optional[RiskLevel] = None
+    parameters: dict[str, Any] | None = None
+    risk_level: RiskLevel | None = None
