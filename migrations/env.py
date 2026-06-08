@@ -12,12 +12,14 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 # Import all models so Alembic can detect them
-from anif_platform.database import Base  # noqa: F401
-import anif_platform.human_loop.models  # noqa: F401 — registers ApprovalTicketRow
-import anif_platform.audit.models  # noqa: F401 — registers AuditRecord
-import anif_platform.intent.models  # noqa: F401 — registers IntentRow
-import anif_platform.execution.models  # noqa: F401 — registers ExecutionRecordRow
-import anif_platform.ethics.models  # noqa: F401 — registers StrikeRecordRow
+import anif_platform.audit.models  # noqa: E402, F401 — registers AuditRecord
+import anif_platform.council.models  # noqa: E402, F401 — registers CouncilRecordRow
+import anif_platform.ethics.models  # noqa: E402, F401 — registers StrikeRecordRow
+import anif_platform.execution.models  # noqa: E402, F401 — registers ExecutionRecordRow
+import anif_platform.human_loop.models  # noqa: E402, F401 — registers ApprovalTicketRow
+import anif_platform.intent.models  # noqa: E402, F401 — registers IntentRow
+import anif_platform.learning.models  # noqa: E402, F401 — registers KnowledgePackageRow, SourceQualityRow
+from anif_platform.database import Base  # noqa: E402, F401
 
 target_metadata = Base.metadata
 

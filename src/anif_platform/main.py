@@ -16,6 +16,8 @@ from anif_platform.audit.router import get_audit_query_service
 from anif_platform.audit.router import router as audit_router
 from anif_platform.audit.writer import AuditWriter
 from anif_platform.auth import get_api_key
+from anif_platform.council.router import get_db_session as council_get_session
+from anif_platform.council.router import router as council_router
 from anif_platform.database import async_session_factory, engine
 from anif_platform.ethics.constraints import ActionTypeValidator
 from anif_platform.ethics.router import router as override_router
@@ -35,6 +37,8 @@ from anif_platform.intent.registry import IntentRegistry
 from anif_platform.intent.router import get_audit_writer as intent_get_writer
 from anif_platform.intent.router import get_intent_registry as intent_get_registry
 from anif_platform.intent.router import router as intent_router
+from anif_platform.learning.router import get_db_session as learning_get_session
+from anif_platform.learning.router import router as learning_router
 from anif_platform.pipeline.router import get_action_executor as pipeline_get_executor
 from anif_platform.pipeline.router import get_approval_queue as pipeline_get_queue
 from anif_platform.pipeline.router import get_audit_writer as pipeline_get_writer
@@ -128,6 +132,11 @@ async def _get_session_executor(
         yield ActionExecutor(adapter=adapter, session=session, writer=writer)
 
 
+async def _get_session_raw(request: Request) -> AsyncGenerator[None, None]:
+    async with async_session_factory() as session:
+        yield session  # type: ignore[misc]
+
+
 # ── Dependency overrides ──────────────────────────────────────────────────
 
 app.dependency_overrides[get_audit_query_service] = _get_session_query
@@ -145,6 +154,8 @@ app.dependency_overrides[halt_get_writer] = _get_session_writer
 app.dependency_overrides[pipeline_get_queue] = _get_session_approval_queue
 app.dependency_overrides[exec_get_executor] = _get_session_executor
 app.dependency_overrides[pipeline_get_executor] = _get_session_executor
+app.dependency_overrides[council_get_session] = _get_session_raw
+app.dependency_overrides[learning_get_session] = _get_session_raw
 
 
 # ── Webhook endpoint (when GIT_WATCHER_MODE includes webhook) ────────────
@@ -177,3 +188,5 @@ app.include_router(governance_router)
 app.include_router(human_loop_router)
 app.include_router(execution_router)
 app.include_router(override_router)
+app.include_router(council_router)
+app.include_router(learning_router)
