@@ -17,6 +17,7 @@ import anif_platform.human_loop.models  # noqa: F401 — registers ApprovalTicke
 import anif_platform.audit.models  # noqa: F401 — registers AuditRecord
 import anif_platform.intent.models  # noqa: F401 — registers IntentRow
 import anif_platform.execution.models  # noqa: F401 — registers ExecutionRecordRow
+import anif_platform.ethics.models  # noqa: F401 — registers StrikeRecordRow
 
 target_metadata = Base.metadata
 

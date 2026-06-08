@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import time
 import uuid
+from datetime import UTC, datetime
 from typing import Any
 
 import structlog
@@ -20,6 +21,8 @@ from pydantic import BaseModel
 
 from anif_platform.audit.writer import AuditWriter
 from anif_platform.auth import get_api_key
+from anif_platform.ethics.constraints import RollbackPlan
+from anif_platform.ethics.containment import PipelineContext
 from anif_platform.execution.executor import ActionExecutor, PreconditionError
 from anif_platform.governance.gate import GovernanceGate
 from anif_platform.human_loop.queue import ApprovalQueue
@@ -318,12 +321,30 @@ async def orchestrate(
 
     # ── Stage 6: Execute (ANIF-306) ──────────────────────────────────────
     if not request.dry_run:
+        _pipeline_ctx = PipelineContext(
+            intent_id=intent_id,
+            policy_result=policy_result,
+            risk_score_result=risk_result,
+            # B8 stubs — harm classification and fairness evaluators not yet implemented
+            harm_classification_result={"harm_class": "none", "harm_severity_score": 0},
+            fairness_check_result={
+                "sla_floor_result": "not_applicable",
+                "freshness_gate_result": "pass",
+            },
+            llm_validation_result=None,
+            governance_decision=_gov_result,
+            rollback_plan=RollbackPlan(
+                rollback_action_type=_action_type,
+                rollback_target="pipeline-auto",
+                rollback_within_seconds=60,
+                rollback_confirmed_at=datetime.now(UTC),
+            ),
+        )
         try:
             _exec_result = await executor.execute(
-                intent_id=intent_id,
+                pipeline_context=_pipeline_ctx,
                 decision=decision_result,
                 parameters=decision_result.get("recommended_action", {}).get("parameters", {}),
-                governance_result=_gov_result,
                 ticket_id=None,  # auto mode: no ticket needed
             )
         except PreconditionError as exc:

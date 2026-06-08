@@ -19,6 +19,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from anif_platform.audit.writer import AuditWriter
+from anif_platform.ethics.containment import ContainmentContract, PipelineContext
 from anif_platform.execution.adapter import NetworkAdapter
 from anif_platform.execution.models import ExecutionRecordRow
 from anif_platform.human_loop.models import ApprovalTicketRow, TicketStatus
@@ -58,19 +59,23 @@ class ActionExecutor:
 
     async def execute(
         self,
-        intent_id: uuid.UUID,
+        pipeline_context: PipelineContext,
         decision: dict[str, Any],
         parameters: dict[str, Any],
-        governance_result: dict[str, Any],
         ticket_id: str | None,
     ) -> dict[str, Any]:
         """
         Execute an action after verifying governance preconditions — ANIF-306 §6.1.
 
+        ContainmentContract.validate() MUST be the first operation — ANIF-725 §4.3.
         Writes EXECUTION_START before calling the adapter.
         Writes EXECUTION_SUCCESS or EXECUTION_FAILED after the adapter responds.
         Triggers automatic rollback on failure (§8.1).
         """
+        ContainmentContract.validate(pipeline_context)
+        intent_id = pipeline_context.intent_id
+        governance_result = pipeline_context.governance_decision or {}
+
         decision_id = decision.get("decision_id", "")
         action_type = decision.get("recommended_action", {}).get("action_type", "apply_qos")
         execution_id = str(uuid.uuid4())

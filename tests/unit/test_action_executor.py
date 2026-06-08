@@ -8,6 +8,8 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
+from anif_platform.ethics.constraints import RollbackPlan
+from anif_platform.ethics.containment import PipelineContext
 from anif_platform.execution.executor import ActionExecutor, PreconditionError
 from anif_platform.execution.mock_adapter import MockNetworkAdapter
 from anif_platform.execution.models import ExecutionRecordRow
@@ -20,6 +22,27 @@ def make_gov_auto() -> dict:
 
 def make_gov_manual_approved() -> dict:
     return {"mode": "manual_review", "triggered_rule": "R-02", "rationale": "review"}
+
+
+def make_pipeline_context(
+    intent_id: uuid.UUID | None = None,
+    governance_result: dict | None = None,
+) -> PipelineContext:
+    return PipelineContext(
+        intent_id=intent_id or uuid.uuid4(),
+        policy_result={"mode": "auto", "policies_evaluated": []},
+        risk_score_result={"risk_score": 20, "threshold_applied": "default"},
+        harm_classification_result={"harm_class": "none", "harm_severity_score": 10},
+        fairness_check_result={"sla_floor_result": "not_applicable", "freshness_gate_result": "pass"},
+        llm_validation_result=None,
+        governance_decision=governance_result or make_gov_auto(),
+        rollback_plan=RollbackPlan(
+            rollback_action_type="apply_qos",
+            rollback_target="segment-test",
+            rollback_within_seconds=60,
+            rollback_confirmed_at=datetime.now(UTC),
+        ),
+    )
 
 
 def make_decision(action_type: str = "apply_qos") -> dict:
@@ -75,10 +98,9 @@ class TestGovernancePreconditions:
         """ANIF-306 §5: auto mode satisfies Precondition A for non-isolate actions."""
         executor, _, _ = make_executor()
         result = await executor.execute(
-            intent_id=uuid.uuid4(),
+            pipeline_context=make_pipeline_context(),
             decision=make_decision("apply_qos"),
             parameters=make_params("apply_qos"),
-            governance_result=make_gov_auto(),
             ticket_id=None,
         )
         assert result["status"] == "success"
@@ -89,10 +111,9 @@ class TestGovernancePreconditions:
         executor, _, _ = make_executor()
         with pytest.raises(PreconditionError, match="isolate_segment"):
             await executor.execute(
-                intent_id=uuid.uuid4(),
+                pipeline_context=make_pipeline_context(),
                 decision=make_decision("isolate_segment"),
                 parameters=make_params("isolate_segment"),
-                governance_result=make_gov_auto(),
                 ticket_id=None,
             )
 
@@ -113,10 +134,9 @@ class TestGovernancePreconditions:
         session.get = AsyncMock(return_value=ticket)
 
         result = await executor.execute(
-            intent_id=uuid.uuid4(),
+            pipeline_context=make_pipeline_context(governance_result=make_gov_manual_approved()),
             decision=make_decision("isolate_segment"),
             parameters=make_params("isolate_segment"),
-            governance_result=make_gov_manual_approved(),
             ticket_id="t-001",
         )
         assert result["status"] == "success"
@@ -127,10 +147,9 @@ class TestGovernancePreconditions:
         executor, _, _ = make_executor()
         with pytest.raises(PreconditionError, match="ticket_id"):
             await executor.execute(
-                intent_id=uuid.uuid4(),
+                pipeline_context=make_pipeline_context(governance_result=make_gov_manual_approved()),
                 decision=make_decision("apply_qos"),
                 parameters=make_params("apply_qos"),
-                governance_result=make_gov_manual_approved(),
                 ticket_id=None,
             )
 
@@ -152,10 +171,9 @@ class TestGovernancePreconditions:
 
         with pytest.raises(PreconditionError, match="approved"):
             await executor.execute(
-                intent_id=uuid.uuid4(),
+                pipeline_context=make_pipeline_context(governance_result=make_gov_manual_approved()),
                 decision=make_decision("apply_qos"),
                 parameters=make_params("apply_qos"),
-                governance_result=make_gov_manual_approved(),
                 ticket_id="t-002",
             )
 
@@ -165,10 +183,9 @@ class TestGovernancePreconditions:
         executor, _, writer = make_executor()
         with pytest.raises(PreconditionError):
             await executor.execute(
-                intent_id=uuid.uuid4(),
+                pipeline_context=make_pipeline_context(),
                 decision=make_decision("isolate_segment"),
                 parameters=make_params("isolate_segment"),
-                governance_result=make_gov_auto(),
                 ticket_id=None,
             )
         writer.write.assert_called_once()
@@ -181,10 +198,9 @@ class TestExecuteSuccess:
         executor, _, _ = make_executor(force_success=True)
         intent_id = uuid.uuid4()
         result = await executor.execute(
-            intent_id=intent_id,
+            pipeline_context=make_pipeline_context(intent_id=intent_id),
             decision=make_decision("apply_qos"),
             parameters=make_params("apply_qos"),
-            governance_result=make_gov_auto(),
             ticket_id=None,
         )
         assert result["execution_id"]
@@ -204,10 +220,9 @@ class TestExecuteSuccess:
         """ANIF-306 §11: EXECUTION_START and EXECUTION_SUCCESS MUST be written."""
         executor, _, writer = make_executor(force_success=True)
         await executor.execute(
-            intent_id=uuid.uuid4(),
+            pipeline_context=make_pipeline_context(),
             decision=make_decision("apply_qos"),
             parameters=make_params("apply_qos"),
-            governance_result=make_gov_auto(),
             ticket_id=None,
         )
         assert writer.write.call_count == 2
@@ -217,10 +232,9 @@ class TestExecuteSuccess:
         """Execution record MUST be persisted to DB."""
         executor, session, _ = make_executor(force_success=True)
         await executor.execute(
-            intent_id=uuid.uuid4(),
+            pipeline_context=make_pipeline_context(),
             decision=make_decision("apply_qos"),
             parameters=make_params("apply_qos"),
-            governance_result=make_gov_auto(),
             ticket_id=None,
         )
         session.add.assert_called_once()
@@ -232,10 +246,9 @@ class TestExecuteFailureAndRollback:
         """ANIF-306 §8.1: automatic rollback MUST be attempted on every failure."""
         executor, _, writer = make_executor(force_failure=True)
         result = await executor.execute(
-            intent_id=uuid.uuid4(),
+            pipeline_context=make_pipeline_context(),
             decision=make_decision("apply_qos"),
             parameters=make_params("apply_qos"),
-            governance_result=make_gov_auto(),
             ticket_id=None,
         )
         assert result["status"] == "failed"
@@ -247,10 +260,9 @@ class TestExecuteFailureAndRollback:
         """ANIF-306 §9: rollback_status MUST be set after automatic rollback."""
         executor, _, _ = make_executor(force_failure=True)
         result = await executor.execute(
-            intent_id=uuid.uuid4(),
+            pipeline_context=make_pipeline_context(),
             decision=make_decision("scale_bandwidth"),
             parameters=make_params("scale_bandwidth"),
-            governance_result=make_gov_auto(),
             ticket_id=None,
         )
         assert result["rollback_status"] in ("success", "failed")
@@ -260,10 +272,9 @@ class TestExecuteFailureAndRollback:
         """ANIF-306 §9: rollback_available=False when adapter returned null rollback_reference."""
         executor, _, _ = make_executor(force_failure=True)
         result = await executor.execute(
-            intent_id=uuid.uuid4(),
+            pipeline_context=make_pipeline_context(),
             decision=make_decision("apply_qos"),
             parameters=make_params("apply_qos"),
-            governance_result=make_gov_auto(),
             ticket_id=None,
         )
         assert result["rollback_available"] is False

@@ -14,6 +14,8 @@ import structlog
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from anif_platform.auth import get_api_key
+from anif_platform.ethics.constraints import RollbackPlan
+from anif_platform.ethics.containment import PipelineContext
 from anif_platform.execution.executor import ActionExecutor, PreconditionError
 from anif_platform.execution.schemas import ExecuteRequest
 
@@ -51,9 +53,20 @@ async def execute_action(
             "completed_at": None,
         }
 
+    pipeline_context = PipelineContext(
+        intent_id=request.intent_id,
+        policy_result=request.policy_result,
+        risk_score_result=request.risk_score_result,
+        harm_classification_result=request.harm_classification_result,
+        fairness_check_result=request.fairness_check_result,
+        llm_validation_result=request.llm_validation_result,
+        governance_decision=request.governance_result,
+        rollback_plan=RollbackPlan(**request.rollback_plan) if request.rollback_plan else None,
+    )
+
     try:
         result = await executor.execute(
-            intent_id=request.intent_id,
+            pipeline_context=pipeline_context,
             decision={
                 "decision_id": request.decision_id,
                 "recommended_action": {
@@ -63,7 +76,6 @@ async def execute_action(
                 },
             },
             parameters=request.parameters,
-            governance_result=request.governance_result,
             ticket_id=request.ticket_id,
         )
     except PreconditionError as exc:

@@ -17,6 +17,8 @@ from anif_platform.audit.router import router as audit_router
 from anif_platform.audit.writer import AuditWriter
 from anif_platform.auth import get_api_key
 from anif_platform.database import async_session_factory, engine
+from anif_platform.ethics.constraints import ActionTypeValidator
+from anif_platform.ethics.router import router as override_router
 from anif_platform.execution.executor import ActionExecutor
 from anif_platform.execution.mock_adapter import MockNetworkAdapter
 from anif_platform.execution.router import get_action_executor as exec_get_executor
@@ -64,6 +66,7 @@ def _get_policy_engine() -> PolicyEngine:
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     log.info("anif_platform_starting")
+    ActionTypeValidator.validate_at_startup()
 
     # Start GitWatcher if configured
     mode = os.environ.get("GIT_WATCHER_MODE", "")
@@ -173,3 +176,4 @@ app.include_router(webhook_router)
 app.include_router(governance_router)
 app.include_router(human_loop_router)
 app.include_router(execution_router)
+app.include_router(override_router)

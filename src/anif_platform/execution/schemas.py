@@ -20,7 +20,7 @@ class AdapterResponseSchema(BaseModel):
 
 
 class ExecuteRequest(BaseModel):
-    """Request body for POST /execute — ANIF-306 §9."""
+    """Request body for POST /execute — ANIF-306 §9, ANIF-725 §4.2."""
 
     intent_id: uuid.UUID
     decision_id: str
@@ -30,6 +30,15 @@ class ExecuteRequest(BaseModel):
     # ticket_id is required when governance_result.mode == manual_review
     ticket_id: str | None = None
     dry_run: bool = False
+    # PipelineContext evidence required by ContainmentContract — ANIF-725 §4.2
+    # Callers that have run individual pipeline stages must supply these fields.
+    # ContainmentContract.validate() will reject requests with None mandatory fields.
+    policy_result: dict[str, Any] | None = None
+    risk_score_result: dict[str, Any] | None = None
+    harm_classification_result: dict[str, Any] | None = None
+    fairness_check_result: dict[str, Any] | None = None
+    llm_validation_result: dict[str, Any] | None = None
+    rollback_plan: dict[str, Any] | None = None
 
 
 class ExecuteResponse(BaseModel):
