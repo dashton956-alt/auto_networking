@@ -24,7 +24,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
     <section aria-labelledby={`section-${title.toLowerCase().replace(/\s/g, "-")}`}>
       <h2
         id={`section-${title.toLowerCase().replace(/\s/g, "-")}`}
-        className="text-xs font-semibold text-chrome-500 uppercase tracking-widest mb-4 pb-2 border-b border-chrome-200"
+        className="text-xs font-semibold text-chrome-600 uppercase tracking-widest mb-4 pb-2 border-b border-chrome-200"
       >
         {title}
       </h2>
@@ -44,13 +44,15 @@ export default function DesignSystemPage() {
   const [inputVal, setInputVal] = useState("");
   const [inputError, setInputError] = useState("");
   const [dismissed, setDismissed] = useState(false);
-  const expiresAt = new Date(Date.now() + 8 * 60 * 1000); // 8 min from now
+  // Lazy state init: showcase-only fixed expiry times, set once on mount.
+  const [expiresAt] = useState(() => new Date(Date.now() + 8 * 60 * 1000));
+  const [urgentExpiresAt] = useState(() => new Date(Date.now() + 90 * 1000));
 
   return (
     <div className="max-w-4xl mx-auto space-y-12 pb-12">
       <div>
         <h1 className="text-2xl font-bold text-chrome-900">Design System</h1>
-        <p className="mt-1 text-sm text-chrome-500">ANIF Platform component library — F1</p>
+        <p className="mt-1 text-sm text-chrome-600">ANIF Platform component library — F1</p>
       </div>
 
       {/* Buttons */}
@@ -80,7 +82,7 @@ export default function DesignSystemPage() {
           )}
         </div>
         <div className="flex flex-wrap gap-2 items-center">
-          <p className="text-xs text-chrome-500">via statusVariant():</p>
+          <p className="text-xs text-chrome-600">via statusVariant():</p>
           {["success", "failed", "pending", "blocked", "approved", "rejected"].map((s) => (
             <Badge key={s} variant={statusVariant(s)}>{s}</Badge>
           ))}
@@ -110,7 +112,7 @@ export default function DesignSystemPage() {
         <div className="space-y-3 max-w-xs">
           {[15, 50, 88].map((score) => (
             <div key={score} className="flex items-center gap-4">
-              <span className="text-xs text-chrome-500 w-12">Score {score}</span>
+              <span className="text-xs text-chrome-600 w-12">Score {score}</span>
               <RiskMeter score={score} className="flex-1" />
             </div>
           ))}
@@ -130,7 +132,7 @@ export default function DesignSystemPage() {
         </div>
         <div className="flex items-center gap-3">
           <span className="text-sm text-chrome-600">Urgent (&lt;2 min):</span>
-          <CountdownTimer expiresAt={new Date(Date.now() + 90 * 1000)} />
+          <CountdownTimer expiresAt={urgentExpiresAt} />
         </div>
       </Section>
 

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 /** Live countdown to a future date — ANIF-404 §4.7: time remaining before expiry. */
 
@@ -22,7 +22,10 @@ function formatRemaining(ms: number): { text: string; urgent: boolean } {
 }
 
 export function CountdownTimer({ expiresAt, onExpired, className = "" }: CountdownTimerProps) {
-  const expiry = typeof expiresAt === "string" ? new Date(expiresAt) : expiresAt;
+  const expiry = useMemo(
+    () => (typeof expiresAt === "string" ? new Date(expiresAt) : expiresAt),
+    [expiresAt],
+  );
   const [remaining, setRemaining] = useState(() => expiry.getTime() - Date.now());
 
   useEffect(() => {

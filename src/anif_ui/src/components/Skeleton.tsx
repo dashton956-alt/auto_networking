@@ -6,6 +6,7 @@ interface SkeletonProps {
 export function Skeleton({ className = "", "aria-label": label = "Loading content" }: SkeletonProps) {
   return (
     <div
+      role="status"
       aria-busy="true"
       aria-label={label}
       className={["animate-pulse rounded bg-chrome-200", className].join(" ")}
@@ -15,7 +16,7 @@ export function Skeleton({ className = "", "aria-label": label = "Loading conten
 
 export function SkeletonText({ lines = 3 }: { lines?: number }) {
   return (
-    <div className="space-y-2" aria-busy="true" aria-label="Loading text">
+    <div role="status" className="space-y-2" aria-busy="true" aria-label="Loading text">
       {Array.from({ length: lines }).map((_, i) => (
         <Skeleton
           key={i}

@@ -1,12 +1,125 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 
+const INTENT_ID = "7f9b2a64-1c3d-4e5f-8a9b-0c1d2e3f4a5b";
+
+const VALIDATED_INTENT = {
+  intent_id: INTENT_ID,
+  change_number: 42,
+  version: "0.1.0",
+  service: "payments",
+  status: "validated",
+  git_ref: {
+    repo_url: "https://git.example.com/intents.git",
+    path: "intents/payments.yml",
+    commit_sha: "abc123def4567890abc123def4567890abc123de",
+  },
+  resolved_intent: {
+    service: "payments",
+    environment: "staging",
+    priority: "high",
+    objectives: { latency_ms: 50 },
+    constraints: { region: "EU", encryption: true },
+    policies: ["zero_trust"],
+  },
+  warnings: ["objectives.latency_ms: value below 10 ms is unlikely to be achievable"],
+  created_at: "2026-06-10T09:00:00Z",
+};
+
+const AUDIT_RECORDS = [
+  {
+    record_id: "0a1b2c3d-0000-4000-8000-000000000001",
+    intent_id: INTENT_ID,
+    stage: "validate",
+    timestamp: "2026-06-10T09:00:01Z",
+    outcome: "success",
+    duration_ms: 12,
+    input_summary: { service: "payments" },
+    output_summary: { status: "validated" },
+  },
+  {
+    record_id: "0a1b2c3d-0000-4000-8000-000000000002",
+    intent_id: INTENT_ID,
+    stage: "policy",
+    timestamp: "2026-06-10T09:00:02Z",
+    outcome: "success",
+    duration_ms: 8,
+    input_summary: {},
+    output_summary: { overall_result: "pass" },
+  },
+  {
+    record_id: "0a1b2c3d-0000-4000-8000-000000000003",
+    intent_id: INTENT_ID,
+    stage: "risk",
+    timestamp: "2026-06-10T09:00:03Z",
+    outcome: "success",
+    duration_ms: 5,
+    input_summary: {},
+    output_summary: { risk_score: 35 },
+  },
+  {
+    record_id: "0a1b2c3d-0000-4000-8000-000000000004",
+    intent_id: INTENT_ID,
+    stage: "governance",
+    timestamp: "2026-06-10T09:00:04Z",
+    outcome: "escalated",
+    duration_ms: 3,
+    input_summary: {},
+    output_summary: { mode: "manual_review" },
+  },
+];
+
+/** Mock every /api route the F2 pages call so audits run without a backend. */
+async function mockApi(page: Page) {
+  await page.route("**/api/intent/intents**", (route) =>
+    route.fulfill({
+      json: { items: [VALIDATED_INTENT], total: 1, limit: 20, offset: 0 },
+    }),
+  );
+  await page.route(`**/api/intent/intent/${INTENT_ID}`, (route) =>
+    route.fulfill({ json: VALIDATED_INTENT }),
+  );
+  await page.route(`**/api/audit/${INTENT_ID}`, (route) =>
+    route.fulfill({ json: AUDIT_RECORDS }),
+  );
+  await page.route(`**/api/audit/${INTENT_ID}/why`, (route) =>
+    route.fulfill({
+      json: `Intent ${INTENT_ID} — pipeline summary\n\nStage: validate → success\nStage: governance → escalated`,
+    }),
+  );
+}
+
+async function expectNoViolations(page: Page) {
+  const results = await new AxeBuilder({ page })
+    .withTags(["wcag2a", "wcag2aa"])
+    .analyze();
+  expect(results.violations).toEqual([]);
+}
+
 test.describe("WCAG 2.1 AA audit", () => {
-  test("home page has no accessibility violations", async ({ page }) => {
+  test("intent list page has no accessibility violations", async ({ page }) => {
+    await mockApi(page);
     await page.goto("/");
-    const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
-      .analyze();
-    expect(results.violations).toEqual([]);
+    await page.getByRole("link", { name: "payments" }).waitFor();
+    await expectNoViolations(page);
+  });
+
+  test("intent submission page has no accessibility violations", async ({ page }) => {
+    await mockApi(page);
+    await page.goto("/intents/new");
+    await page.getByRole("button", { name: "Submit intent" }).waitFor();
+    await expectNoViolations(page);
+  });
+
+  test("intent detail page has no accessibility violations", async ({ page }) => {
+    await mockApi(page);
+    await page.goto(`/intents/${INTENT_ID}`);
+    await page.getByRole("heading", { name: "payments" }).waitFor();
+    await expectNoViolations(page);
+  });
+
+  test("design system page has no accessibility violations", async ({ page }) => {
+    await page.goto("/design-system");
+    await expectNoViolations(page);
   });
 });

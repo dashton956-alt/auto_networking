@@ -1,5 +1,6 @@
 export { Button } from "./Button";
-export { Badge, statusVariant } from "./Badge";
+export { Badge, type BadgeVariant } from "./Badge";
+export { statusVariant } from "./statusVariant";
 export { Card, CardHeader, CardBody, CardFooter } from "./Card";
 export { Alert } from "./Alert";
 export { Spinner } from "./Spinner";
@@ -9,3 +10,4 @@ export { Select } from "./Select";
 export { Table } from "./Table";
 export { RiskMeter, RiskBadge } from "./RiskMeter";
 export { CountdownTimer } from "./CountdownTimer";
+export { PipelineStatusTracker } from "./PipelineStatusTracker";

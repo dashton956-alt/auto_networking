@@ -17,38 +17,41 @@ export default {
           900: "#1e3a8a",
           950: "#172554",
         },
-        // Semantic status tokens
+        // Semantic status tokens.
+        // Foreground values must hold >= 4.5:1 (WCAG 1.4.3) on their paired
+        // -bg tints AND on chrome-100 (the app shell background), including
+        // through the Alert body's 90% opacity.
         status: {
-          success: "#16a34a",
+          success: "#166534",
           "success-bg": "#f0fdf4",
           "success-border": "#bbf7d0",
-          warning: "#d97706",
+          warning: "#92400e",
           "warning-bg": "#fffbeb",
           "warning-border": "#fde68a",
-          danger: "#dc2626",
+          danger: "#b91c1c",
           "danger-bg": "#fef2f2",
           "danger-border": "#fecaca",
-          info: "#0284c7",
+          info: "#075985",
           "info-bg": "#f0f9ff",
           "info-border": "#bae6fd",
         },
-        // Intent/ticket lifecycle states
+        // Intent/ticket lifecycle states (same contrast rule as status)
         intent: {
-          pending: "#6b7280",
+          pending: "#4b5563",
           running: "#2563eb",
-          success: "#16a34a",
-          failed: "#dc2626",
-          blocked: "#ea580c",
+          success: "#166534",
+          failed: "#b91c1c",
+          blocked: "#9a3412",
           escalated: "#7c3aed",
-          cancelled: "#9ca3af",
+          cancelled: "#52525b",
         },
-        // Risk threshold bands (ANIF-304)
+        // Risk threshold bands (ANIF-304; same contrast rule as status)
         risk: {
-          low: "#16a34a",
+          low: "#166534",
           "low-bg": "#f0fdf4",
-          medium: "#d97706",
+          medium: "#92400e",
           "medium-bg": "#fffbeb",
-          high: "#dc2626",
+          high: "#b91c1c",
           "high-bg": "#fef2f2",
         },
         // Sidebar / chrome
