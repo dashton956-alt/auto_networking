@@ -6,13 +6,18 @@ import time
 import uuid
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
 
-from anif_platform.auth import get_api_key
 from anif_platform.audit.writer import AuditWriter
+from anif_platform.auth import get_api_key
 from anif_platform.intent.registry import IntentRegistry
-from anif_platform.intent.schemas import GitIntentRef, ValidatedIntent, ValidationResult
+from anif_platform.intent.schemas import (
+    GitIntentRef,
+    IntentListResponse,
+    ValidatedIntent,
+    ValidationResult,
+)
 from anif_platform.intent.validator import IntentValidator
 from anif_platform.schemas.audit_record import AuditOutcome, AuditRecord, AuditStage
 from anif_platform.schemas.intent import Intent
@@ -81,6 +86,25 @@ async def validate_intent(
         await registry.register(result, request.git_ref)
 
     return result
+
+
+@router.get("/intents", response_model=IntentListResponse)
+async def list_intents(
+    limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    status_filter: str | None = Query(None, alias="status"),
+    service: str | None = Query(None),
+    registry: IntentRegistry = Depends(get_intent_registry),
+    _: str = Depends(get_api_key),
+) -> IntentListResponse:
+    """
+    Return registered intents newest-first with pagination and optional
+    status/service filters — F2 Intent Dashboard list view.
+    """
+    items, total = await registry.list_intents(
+        limit=limit, offset=offset, status=status_filter, service=service
+    )
+    return IntentListResponse(items=items, total=total, limit=limit, offset=offset)
 
 
 @router.get("/intent/{intent_id}", response_model=ValidatedIntent)

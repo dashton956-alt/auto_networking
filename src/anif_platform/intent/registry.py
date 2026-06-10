@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from typing import Optional
 from uuid import UUID
 
 from sqlalchemy import func, select
@@ -22,7 +21,7 @@ class IntentRegistry:
     async def register(
         self,
         result: ValidationResult,
-        git_ref: Optional[GitIntentRef] = None,
+        git_ref: GitIntentRef | None = None,
     ) -> ValidatedIntent:
         """
         Persist a validated intent.
@@ -53,7 +52,53 @@ class IntentRegistry:
 
         return self._row_to_schema(row, git_ref)
 
-    async def get(self, intent_id: UUID) -> Optional[ValidatedIntent]:
+    async def list_intents(
+        self,
+        *,
+        limit: int = 20,
+        offset: int = 0,
+        status: str | None = None,
+        service: str | None = None,
+    ) -> tuple[list[ValidatedIntent], int]:
+        """
+        Return registered intents newest-first plus the total matching count.
+
+        Pagination via limit/offset; optional exact-match filters on
+        status and service. Total ignores pagination.
+        """
+        filters = []
+        if status is not None:
+            filters.append(IntentRow.status == status)
+        if service is not None:
+            filters.append(IntentRow.service == service)
+
+        count_result = await self._session.execute(
+            select(func.count()).select_from(IntentRow).where(*filters)
+        )
+        total = count_result.scalar_one()
+
+        result = await self._session.execute(
+            select(IntentRow)
+            .where(*filters)
+            .order_by(IntentRow.created_at.desc(), IntentRow.change_number.desc())
+            .limit(limit)
+            .offset(offset)
+        )
+        rows = result.scalars().all()
+
+        items = []
+        for row in rows:
+            git_ref = None
+            if row.git_repo_url:
+                git_ref = GitIntentRef(
+                    repo_url=row.git_repo_url,
+                    path=row.git_path or "",
+                    commit_sha=row.git_commit_sha or "",
+                )
+            items.append(self._row_to_schema(row, git_ref))
+        return items, total
+
+    async def get(self, intent_id: UUID) -> ValidatedIntent | None:
         """Return a registered intent by ID, or None if not found."""
         result = await self._session.execute(
             select(IntentRow).where(IntentRow.intent_id == intent_id)
@@ -76,9 +121,7 @@ class IntentRegistry:
         return (current_max or 0) + 1
 
     @staticmethod
-    def _row_to_schema(
-        row: IntentRow, git_ref: Optional[GitIntentRef]
-    ) -> ValidatedIntent:
+    def _row_to_schema(row: IntentRow, git_ref: GitIntentRef | None) -> ValidatedIntent:
         return ValidatedIntent(
             intent_id=row.intent_id,
             change_number=row.change_number,

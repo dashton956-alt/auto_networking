@@ -51,12 +51,14 @@ class IntentValidator:
             )
 
         # VAL-003 — prod requires high or critical priority (blocking)
-        if environment == Environment.prod.value:
-            if priority not in (Priority.high.value, Priority.critical.value):
-                errors.append(
-                    f"priority: production environment requires priority to be "
-                    f"'high' or 'critical'; received '{priority}'"
-                )
+        if environment == Environment.prod.value and priority not in (
+            Priority.high.value,
+            Priority.critical.value,
+        ):
+            errors.append(
+                f"priority: production environment requires priority to be "
+                f"'high' or 'critical'; received '{priority}'"
+            )
 
         # VAL-004 — pci_compliant requires encryption=true (blocking)
         if PolicyName.pci_compliant.value in policies:

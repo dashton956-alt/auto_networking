@@ -76,9 +76,10 @@ class GitWatcher:
     async def _get_latest_commit_sha(self) -> str:
         """Fetch the latest commit SHA from the Git API (GitHub format)."""
         # Converts https://github.com/org/repo → api.github.com/repos/org/repo/commits
-        api_url = self._repo_url.replace(
-            "https://github.com/", "https://api.github.com/repos/"
-        ) + "/commits"
+        api_url = (
+            self._repo_url.replace("https://github.com/", "https://api.github.com/repos/")
+            + "/commits"
+        )
         headers = {"Accept": "application/vnd.github+json"}
         if self._token:
             headers["Authorization"] = f"Bearer {self._token}"
@@ -90,9 +91,10 @@ class GitWatcher:
 
     async def _list_intent_files(self, commit_sha: str) -> list[str]:
         """List all .yml files in the intents path at the given commit."""
-        api_url = self._repo_url.replace(
-            "https://github.com/", "https://api.github.com/repos/"
-        ) + f"/contents/{self._intents_path}"
+        api_url = (
+            self._repo_url.replace("https://github.com/", "https://api.github.com/repos/")
+            + f"/contents/{self._intents_path}"
+        )
         headers = {"Accept": "application/vnd.github+json"}
         if self._token:
             headers["Authorization"] = f"Bearer {self._token}"
@@ -102,15 +104,17 @@ class GitWatcher:
                 return []
             resp.raise_for_status()
             return [
-                f["path"] for f in resp.json()
+                f["path"]
+                for f in resp.json()
                 if f["name"].endswith(".yml") or f["name"].endswith(".yaml")
             ]
 
     async def _process_intent_file(self, file_path: str, commit_sha: str) -> None:
         """Fetch, parse, validate, and register one intent file."""
-        raw_url = self._repo_url.replace(
-            "https://github.com/", "https://raw.githubusercontent.com/"
-        ) + f"/{commit_sha}/{file_path}"
+        raw_url = (
+            self._repo_url.replace("https://github.com/", "https://raw.githubusercontent.com/")
+            + f"/{commit_sha}/{file_path}"
+        )
         headers = {}
         if self._token:
             headers["Authorization"] = f"Bearer {self._token}"
