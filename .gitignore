@@ -19,6 +19,8 @@ coverage.xml
 # Node
 src/anif_ui/node_modules/
 src/anif_ui/dist/
+src/anif_ui/test-results/
+src/anif_ui/playwright-report/
 
 # IDE
 .idea/
