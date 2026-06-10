@@ -3,8 +3,8 @@
 > This document is maintained by the `architecture-agent`. Do not edit manually
 > without also updating the relevant `.drawio` diagram files.
 
-**Last updated by:** architecture-agent (post-F1 catch-up)
-**Platform version:** 0.1.0 — backend phases B1–B8 complete; frontend F1 complete
+**Last updated by:** architecture-agent (post-F2)
+**Platform version:** 0.1.0 — backend phases B1–B8 complete; frontend F1–F2 complete
 
 ---
 
@@ -81,6 +81,7 @@ policy-stage audit writes.
 |---|---|---|
 | POST | `/orchestrate` | pipeline |
 | POST | `/intent/validate-intent` | intent |
+| GET | `/intent/intents` (paginated list) | intent |
 | GET | `/intent/intent/{intent_id}` | intent |
 | POST | `/evaluate-policy` | policy |
 | GET | `/audit` (filterable) | audit |
@@ -114,12 +115,24 @@ Playwright + axe-core for WCAG 2.1 AA audits.
 - AppShell layout: collapsible Sidebar + TopBar + skip-to-content link.
 - Living showcase at `/design-system`; axe audit passes with 0 violations.
 
+### Intent Dashboard (F2 — complete)
+
+- API layer (`src/api/`): fetch client with `X-API-Key`, typed endpoint
+  functions; vite dev proxy maps `/api/*` → backend.
+- `/` — paginated intent list (newest first) from `GET /intent/intents`.
+- `/intents/new` — schema-mirroring submission form with validate-only,
+  dry-run and submit actions (`/intent/validate-intent`, `/orchestrate`).
+- `/intents/:id` — intent summary, git provenance, audit-derived pipeline
+  progress, `why` explanation, resolved-intent JSON.
+- `PipelineStatusTracker` — six-stage visual; states derived from
+  orchestrate responses or audit records (`src/lib/pipelineStages.ts`).
+
 ### Pages
 
 | Page | Status | Phase | Backend Dependency |
 |---|---|---|---|
 | Design System showcase | Implemented | F1 | None |
-| Intent Dashboard | Not started | F2 | B2 (Intent API) ✓ ready |
+| Intent Dashboard | Implemented | F2 | B2 (Intent API) |
 | Approval Queue | Not started | F3 | B4 ✓ ready |
 | Audit Trail Viewer | Not started | F4 | B2 ✓ ready |
 | Topology View | Not started | F5 | B5 ✓ ready (SoT adapters still stubbed) |
@@ -176,5 +189,6 @@ All diagrams are in `docs/architecture/diagrams/`. Open with draw.io or diagrams
 
 ## Test Baseline
 
-439 tests passing (unit + integration), 82% line coverage.
+450 backend tests passing (unit + integration), 82% line coverage.
 Integration tests require the Docker Postgres (`anif` / `anif_test` databases).
+Frontend: 4 Playwright axe audits (WCAG 2.1 AA, mocked API) — 0 violations.
