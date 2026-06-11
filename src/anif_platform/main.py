@@ -79,6 +79,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
             registry = IntentRegistry(session)
             watcher = GitWatcher(registry)
             await watcher.start()
+            await session.commit()
             log.info("git_watcher_started", mode=mode)
 
     expiry_task = asyncio.create_task(expiry_loop(async_session_factory))
@@ -100,16 +101,23 @@ app = FastAPI(
 
 
 # ── Per-request dependency factories ─────────────────────────────────────
+#
+# Each mutating factory commits at teardown so business rows staged during
+# the request (intents, tickets, executions, council/learning rows) persist.
+# Audit records do not rely on this: AuditWriter.write() commits inline per
+# ANIF-107 §4.3.1 (durable before the stage returns).
 
 
 async def _get_session_writer(request: Request) -> AsyncGenerator[AuditWriter, None]:
     async with async_session_factory() as session:
         yield AuditWriter(session)
+        await session.commit()
 
 
 async def _get_session_registry(request: Request) -> AsyncGenerator[IntentRegistry, None]:
     async with async_session_factory() as session:
         yield IntentRegistry(session)
+        await session.commit()
 
 
 async def _get_session_query(request: Request) -> AsyncGenerator[AuditQueryService, None]:
@@ -121,6 +129,7 @@ async def _get_session_approval_queue(request: Request) -> AsyncGenerator[Approv
     async with async_session_factory() as session:
         writer = AuditWriter(session)
         yield ApprovalQueue(session=session, writer=writer)
+        await session.commit()
 
 
 async def _get_session_executor(
@@ -130,11 +139,13 @@ async def _get_session_executor(
         writer = AuditWriter(session)
         adapter = MockNetworkAdapter()
         yield ActionExecutor(adapter=adapter, session=session, writer=writer)
+        await session.commit()
 
 
 async def _get_session_raw(request: Request) -> AsyncGenerator[None, None]:
     async with async_session_factory() as session:
         yield session  # type: ignore[misc]
+        await session.commit()
 
 
 # ── Dependency overrides ──────────────────────────────────────────────────
@@ -174,6 +185,7 @@ async def git_webhook(
         registry = IntentRegistry(session)
         watcher = GitWatcher(registry)
         await watcher.handle_webhook(payload)
+        await session.commit()
     return {"status": "accepted"}
 
 

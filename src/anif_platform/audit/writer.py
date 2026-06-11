@@ -99,7 +99,10 @@ class AuditWriter:
 
         self._session.add(row)
         try:
-            await self._session.flush()
+            # Commit, not flush: §4.3.1 requires the record be durable before
+            # the calling stage returns. This also persists any rows the
+            # caller staged on the same session (e.g. approval tickets).
+            await self._session.commit()
         except IntegrityError as exc:
             await self._session.rollback()
             log.error(

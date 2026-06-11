@@ -30,6 +30,7 @@ async def expiry_loop(session_factory: async_sessionmaker[AsyncSession]) -> None
                 writer = AuditWriter(session)
                 queue = ApprovalQueue(session=session, writer=writer)
                 expired = await queue.expire_pending()
+                await session.commit()
                 if expired:
                     log.info(
                         "tickets_expired_by_background_task",

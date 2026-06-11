@@ -64,9 +64,13 @@ async def client(db_session: Any) -> AsyncGenerator[AsyncClient, None]:
     from anif_platform.audit.router import get_audit_query_service
     from anif_platform.main import app
 
+    # Snapshot and restore rather than clear(): main.py installs the
+    # production dependency wiring in this dict at import time, and other
+    # tests (e.g. real-wiring persistence tests) rely on it being intact.
+    saved_overrides = dict(app.dependency_overrides)
     app.dependency_overrides[get_audit_query_service] = lambda: AuditQueryService(db_session)
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         yield c
 
-    app.dependency_overrides.clear()
+    app.dependency_overrides = saved_overrides
