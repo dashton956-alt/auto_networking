@@ -15,8 +15,10 @@ from datetime import UTC, datetime
 from typing import Any
 
 import structlog
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, Header
 from pydantic import BaseModel
+
+from anif_platform.auth import get_api_key
 
 log = structlog.get_logger(__name__)
 
@@ -36,16 +38,24 @@ class OverrideResponse(BaseModel):
 
 
 @router.post("/override", response_model=OverrideResponse)
-async def human_override(request: OverrideRequest) -> dict[str, Any]:
+async def human_override(
+    request: OverrideRequest,
+    x_operator_id: str = Header(..., alias="X-Operator-Id"),
+    _: str = Depends(get_api_key),
+) -> dict[str, Any]:
     """Halt a targeted action immediately — ANIF-721 §6.
 
-    Available at all times. Cannot be disabled or redirected through configuration.
-    Override MUST take effect within 5 seconds of a valid request.
+    Available at all times. Cannot be disabled or redirected through
+    configuration. Override MUST take effect within 5 seconds of a valid
+    request. Callers authenticate like every other endpoint — authentication
+    is orthogonal to the non-disableable requirement — and the override is
+    attributed to the requesting operator.
     """
     acknowledged_at = datetime.now(UTC)
     log.info(
         "human_override_received",
         intent_id=str(request.intent_id),
+        operator_id=x_operator_id,
         reason=request.reason,
         acknowledged_at=acknowledged_at.isoformat(),
     )
