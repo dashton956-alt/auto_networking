@@ -3,8 +3,8 @@
 > This document is maintained by the `architecture-agent`. Do not edit manually
 > without also updating the relevant `.drawio` diagram files.
 
-**Last updated by:** architecture-agent (post-F2)
-**Platform version:** 0.1.0 — backend phases B1–B8 complete; frontend F1–F2 complete
+**Last updated by:** architecture-agent (post-F3)
+**Platform version:** 0.1.0 — backend phases B1–B8 complete; frontend F1–F3 complete
 
 ---
 
@@ -68,9 +68,12 @@ policy-stage audit writes.
 
 **Cross-cutting rules in force:**
 
-- AuditWriter is injected into every stage; records are written before any
-  handler returns (ANIF-107 §4.3).
-- All routers require the `X-API-Key` header (`ANIF_API_KEY` env var).
+- AuditWriter is injected into every stage; `write()` **commits** so the
+  record is durable before any handler returns (ANIF-107 §4.3.1).
+- Per-request session factories in `main.py` commit at teardown — business
+  rows (intents, tickets, executions) persist across requests.
+- All routers require the `X-API-Key` header (`ANIF_API_KEY` env var);
+  `/override` additionally requires `X-Operator-Id` for attribution.
 - Dependency injection throughout; `main.py` is the only composition root.
 
 ---
@@ -127,13 +130,25 @@ Playwright + axe-core for WCAG 2.1 AA audits.
 - `PipelineStatusTracker` — six-stage visual; states derived from
   orchestrate responses or audit records (`src/lib/pipelineStages.ts`).
 
+### Approval Queue (F3 — complete)
+
+- `/approvals` — pending tickets from `GET /governance/tickets`; live
+  countdown per ticket; queue-depth warning above 5 pending.
+- `/approvals/:ticketId` — full ANIF-404 §4.7 review interface: intent
+  summary, proposed action payload, risk score + justification, full
+  reasoning chain, governance rule, rollback plan, submitter, countdown,
+  policy results. Approve/Reject behind a confirmation step; outcomes and
+  server refusals announced via aria-live.
+- Operator identity ("Acting as") sent as `X-Operator-Id`/`X-Operator-Roles`;
+  RBAC (senior_engineer approval, no self-approval) enforced server-side.
+
 ### Pages
 
 | Page | Status | Phase | Backend Dependency |
 |---|---|---|---|
 | Design System showcase | Implemented | F1 | None |
 | Intent Dashboard | Implemented | F2 | B2 (Intent API) |
-| Approval Queue | Not started | F3 | B4 ✓ ready |
+| Approval Queue | Implemented | F3 | B4 (Approval Queue API) |
 | Audit Trail Viewer | Not started | F4 | B2 ✓ ready |
 | Topology View | Not started | F5 | B5 ✓ ready (SoT adapters still stubbed) |
 | Risk & Governance | Not started | F6 | B8 ✓ ready |
@@ -189,6 +204,7 @@ All diagrams are in `docs/architecture/diagrams/`. Open with draw.io or diagrams
 
 ## Test Baseline
 
-450 backend tests passing (unit + integration), 82% line coverage.
+453 backend tests passing (unit + integration), including a cross-request
+persistence regression test through the real app wiring.
 Integration tests require the Docker Postgres (`anif` / `anif_test` databases).
-Frontend: 4 Playwright axe audits (WCAG 2.1 AA, mocked API) — 0 violations.
+Frontend: 7 Playwright axe audits (WCAG 2.1 AA, mocked API) — 0 violations.
