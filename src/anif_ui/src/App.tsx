@@ -1,15 +1,17 @@
 import { Route, Routes } from "react-router-dom";
 import { AppShell } from "@/layouts/AppShell";
+import ApprovalQueuePage from "@/pages/ApprovalQueuePage";
 import DesignSystemPage from "@/pages/DesignSystemPage";
 import IntentDetailPage from "@/pages/IntentDetailPage";
 import IntentListPage from "@/pages/IntentListPage";
 import IntentSubmitPage from "@/pages/IntentSubmitPage";
+import TicketReviewPage from "@/pages/TicketReviewPage";
 
 function PlaceholderPage({ title }: { title: string }) {
   return (
     <div>
       <h1 className="text-2xl font-bold text-chrome-900">{title}</h1>
-      <p className="mt-2 text-sm text-chrome-600">Implementation pending — coming in F3–F6.</p>
+      <p className="mt-2 text-sm text-chrome-600">Implementation pending — coming in F4–F6.</p>
     </div>
   );
 }
@@ -32,7 +34,11 @@ export default function App() {
       />
       <Route
         path="/approvals"
-        element={<Shell title="Approval Queue"><PlaceholderPage title="F3 Approval Queue" /></Shell>}
+        element={<Shell title="Approval Queue"><ApprovalQueuePage /></Shell>}
+      />
+      <Route
+        path="/approvals/:ticketId"
+        element={<Shell title="Ticket Review"><TicketReviewPage /></Shell>}
       />
       <Route
         path="/audit"

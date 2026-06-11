@@ -69,7 +69,17 @@ const AUDIT_RECORDS = [
   },
 ];
 
-/** Mock every /api route the F2 pages call so audits run without a backend. */
+const TICKET = {
+  ticket_id: "GOV-20260611-001",
+  intent_id: INTENT_ID,
+  requested_by: "pipeline-automation",
+  risk_score: 74,
+  decision_summary: "apply_qos on staging requires senior_engineer approval",
+  created_at: "2026-06-11T09:00:00Z",
+  expires_at: new Date(Date.now() + 14 * 60 * 1000).toISOString(),
+};
+
+/** Mock every /api route the F2/F3 pages call so audits run without a backend. */
 async function mockApi(page: Page) {
   await page.route("**/api/intent/intents**", (route) =>
     route.fulfill({
@@ -86,6 +96,9 @@ async function mockApi(page: Page) {
     route.fulfill({
       json: `Intent ${INTENT_ID} — pipeline summary\n\nStage: validate → success\nStage: governance → escalated`,
     }),
+  );
+  await page.route("**/api/governance/tickets", (route) =>
+    route.fulfill({ json: { pending_count: 1, tickets: [TICKET] } }),
   );
 }
 
@@ -115,6 +128,28 @@ test.describe("WCAG 2.1 AA audit", () => {
     await mockApi(page);
     await page.goto(`/intents/${INTENT_ID}`);
     await page.getByRole("heading", { name: "payments" }).waitFor();
+    await expectNoViolations(page);
+  });
+
+  test("approval queue page has no accessibility violations", async ({ page }) => {
+    await mockApi(page);
+    await page.goto("/approvals");
+    await page.getByRole("link", { name: TICKET.ticket_id }).waitFor();
+    await expectNoViolations(page);
+  });
+
+  test("ticket review page has no accessibility violations", async ({ page }) => {
+    await mockApi(page);
+    await page.goto(`/approvals/${TICKET.ticket_id}`);
+    await page.getByRole("button", { name: "Approve…" }).waitFor();
+    await expectNoViolations(page);
+  });
+
+  test("ticket review confirmation step has no accessibility violations", async ({ page }) => {
+    await mockApi(page);
+    await page.goto(`/approvals/${TICKET.ticket_id}`);
+    await page.getByRole("button", { name: "Reject…" }).click();
+    await page.getByRole("button", { name: "Confirm rejection" }).waitFor();
     await expectNoViolations(page);
   });
 

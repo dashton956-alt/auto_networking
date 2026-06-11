@@ -25,6 +25,7 @@ interface RequestOptions {
   method?: "GET" | "POST";
   body?: unknown;
   params?: Record<string, string | number | undefined>;
+  headers?: Record<string, string>;
 }
 
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
@@ -38,6 +39,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     headers: {
       "X-API-Key": API_KEY,
       ...(options.body !== undefined ? { "Content-Type": "application/json" } : {}),
+      ...(options.headers ?? {}),
     },
     body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
   });
