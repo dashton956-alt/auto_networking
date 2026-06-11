@@ -62,6 +62,7 @@ async def client(db_session: Any) -> AsyncGenerator[AsyncClient, None]:
     """Provide an async test client wired to the FastAPI app with a test DB session."""
     from anif_platform.audit.query import AuditQueryService
     from anif_platform.audit.router import get_audit_query_service
+    from anif_platform.auth import get_api_key
     from anif_platform.main import app
 
     # Snapshot and restore rather than clear(): main.py installs the
@@ -69,6 +70,7 @@ async def client(db_session: Any) -> AsyncGenerator[AsyncClient, None]:
     # tests (e.g. real-wiring persistence tests) rely on it being intact.
     saved_overrides = dict(app.dependency_overrides)
     app.dependency_overrides[get_audit_query_service] = lambda: AuditQueryService(db_session)
+    app.dependency_overrides[get_api_key] = lambda: "test-key"
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         yield c

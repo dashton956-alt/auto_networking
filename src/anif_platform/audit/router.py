@@ -10,8 +10,11 @@ from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
 
 from anif_platform.audit.query import AuditQueryService
+from anif_platform.auth import get_api_key
 
-router = APIRouter(prefix="/audit", tags=["audit"])
+# The audit trail carries operational reasoning and operator identities;
+# reads require the same API-key auth as every other router.
+router = APIRouter(prefix="/audit", tags=["audit"], dependencies=[Depends(get_api_key)])
 
 
 def get_audit_query_service() -> AuditQueryService:
