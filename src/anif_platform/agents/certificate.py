@@ -1,4 +1,5 @@
 """X.509 certificate infrastructure for agent identity — ANIF-843."""
+
 from __future__ import annotations
 
 import uuid
@@ -131,9 +132,7 @@ class RevocationList:
     async def is_revoked(self, agent_id: str) -> bool:
         """Return True if agent certificate is on the revocation list."""
         result = await self._session.execute(
-            select(AgentRevocationRow)
-            .where(AgentRevocationRow.agent_id == agent_id)
-            .limit(1)
+            select(AgentRevocationRow).where(AgentRevocationRow.agent_id == agent_id).limit(1)
         )
         return result.scalar_one_or_none() is not None
 
@@ -173,13 +172,19 @@ class CertificateVerifier:
         except Exception:  # noqa: BLE001 — cryptography raises varied errors for malformed DER
             return CertVerificationResult(valid=False, failure_reason="invalid_cert_pem")
 
-        # Step 1: Verify signature
+        # Step 1: Verify signature. The build-time council CA is RSA (PKCS1v15);
+        # any other CA key type is a configuration error and fails verification.
+        ca_public_key = self._ca_cert.public_key()
+        signature_hash = cert.signature_hash_algorithm
+        if not isinstance(ca_public_key, rsa.RSAPublicKey) or signature_hash is None:
+            log.warning("cert_verification_failed", step=1, reason="invalid_signature")
+            return CertVerificationResult(valid=False, failure_reason="invalid_signature")
         try:
-            self._ca_cert.public_key().verify(  # type: ignore[union-attr]
+            ca_public_key.verify(
                 cert.signature,
                 cert.tbs_certificate_bytes,
                 padding.PKCS1v15(),
-                cert.signature_hash_algorithm,  # type: ignore[arg-type]
+                signature_hash,
             )
         except Exception:  # noqa: BLE001
             log.warning("cert_verification_failed", step=1, reason="invalid_signature")
@@ -193,9 +198,10 @@ class CertificateVerifier:
 
         # Step 3: Check revocation list (sync)
         try:
-            agent_id = cert.subject.get_attributes_for_oid(NameOID.COMMON_NAME)[0].value
+            raw_agent_id = cert.subject.get_attributes_for_oid(NameOID.COMMON_NAME)[0].value
         except Exception:  # noqa: BLE001
             return CertVerificationResult(valid=False, failure_reason="missing_agent_id")
+        agent_id = raw_agent_id.decode() if isinstance(raw_agent_id, bytes) else raw_agent_id
 
         if self._revocation_list.is_revoked_sync(agent_id):
             log.warning("cert_verification_failed", step=3, agent_id=agent_id, reason="revoked")
@@ -218,9 +224,9 @@ class CertificateVerifier:
 
         # Step 5: Tier boundary check
         try:
-            tier_str = cert.subject.get_attributes_for_oid(
-                NameOID.ORGANIZATIONAL_UNIT_NAME
-            )[0].value
+            tier_str = cert.subject.get_attributes_for_oid(NameOID.ORGANIZATIONAL_UNIT_NAME)[
+                0
+            ].value
             agent_tier = int(tier_str)
         except (IndexError, ValueError):
             return CertVerificationResult(valid=False, failure_reason="missing_or_invalid_tier")

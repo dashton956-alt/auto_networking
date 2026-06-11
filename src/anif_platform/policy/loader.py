@@ -78,9 +78,7 @@ class PolicyLoader:
             if "action" not in rule:
                 raise PolicyLoadError(f"{path}: rule {i} missing 'action'")
             if rule["action"] not in valid_actions:
-                raise PolicyLoadError(
-                    f"{path}: rule {i} has invalid action '{rule['action']}'"
-                )
+                raise PolicyLoadError(f"{path}: rule {i} has invalid action '{rule['action']}'")
 
     @staticmethod
     def _apply_env_overrides(policies: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
@@ -96,9 +94,7 @@ class PolicyLoader:
         if "data_residency" in policies:
             for rule in policies["data_residency"]["rules"]:
                 if "{approved_regions}" in rule.get("condition", ""):
-                    rule["condition"] = rule["condition"].replace(
-                        "{approved_regions}", approved
-                    )
+                    rule["condition"] = rule["condition"].replace("{approved_regions}", approved)
                 if "not_in_list:" in rule.get("condition", ""):
                     # Rewrite the list literal with current approved regions
                     parts = rule["condition"].split(":", 2)

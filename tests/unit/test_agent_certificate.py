@@ -1,5 +1,6 @@
 # tests/unit/test_agent_certificate.py
 """Unit tests for MockCertificateAuthority, CertificateVerifier, RevocationList — ANIF-843."""
+
 from __future__ import annotations
 
 import hashlib
@@ -10,7 +11,6 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from anif_platform.agents.certificate import (
-    CertVerificationResult,
     CertificateVerifier,
     MockCertificateAuthority,
     RevocationList,

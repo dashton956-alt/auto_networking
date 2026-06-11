@@ -33,7 +33,10 @@ def make_pipeline_context(
         policy_result={"mode": "auto", "policies_evaluated": []},
         risk_score_result={"risk_score": 20, "threshold_applied": "default"},
         harm_classification_result={"harm_class": "none", "harm_severity_score": 10},
-        fairness_check_result={"sla_floor_result": "not_applicable", "freshness_gate_result": "pass"},
+        fairness_check_result={
+            "sla_floor_result": "not_applicable",
+            "freshness_gate_result": "pass",
+        },
         llm_validation_result=None,
         governance_decision=governance_result or make_gov_auto(),
         rollback_plan=RollbackPlan(
@@ -147,7 +150,9 @@ class TestGovernancePreconditions:
         executor, _, _ = make_executor()
         with pytest.raises(PreconditionError, match="ticket_id"):
             await executor.execute(
-                pipeline_context=make_pipeline_context(governance_result=make_gov_manual_approved()),
+                pipeline_context=make_pipeline_context(
+                    governance_result=make_gov_manual_approved()
+                ),
                 decision=make_decision("apply_qos"),
                 parameters=make_params("apply_qos"),
                 ticket_id=None,
@@ -171,7 +176,9 @@ class TestGovernancePreconditions:
 
         with pytest.raises(PreconditionError, match="approved"):
             await executor.execute(
-                pipeline_context=make_pipeline_context(governance_result=make_gov_manual_approved()),
+                pipeline_context=make_pipeline_context(
+                    governance_result=make_gov_manual_approved()
+                ),
                 decision=make_decision("apply_qos"),
                 parameters=make_params("apply_qos"),
                 ticket_id="t-002",

@@ -8,13 +8,12 @@ from __future__ import annotations
 
 import uuid
 
-import pytest
-
 from anif_platform.risk.scorer import RiskScorer
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def make_intent(
     environment: str = "dev",
@@ -66,6 +65,7 @@ CRITICAL_NETWORK = {"status": "critical"}
 # RF-001: Environment Weight (ANIF-304 §6.1)
 # ---------------------------------------------------------------------------
 
+
 class TestRF001EnvironmentWeight:
     def test_prod_adds_30(self) -> None:
         scorer = RiskScorer()
@@ -98,6 +98,7 @@ class TestRF001EnvironmentWeight:
 # RF-002: Priority Weight (ANIF-304 §6.2)
 # ---------------------------------------------------------------------------
 
+
 class TestRF002PriorityWeight:
     def test_critical_adds_10(self) -> None:
         scorer = RiskScorer()
@@ -127,6 +128,7 @@ class TestRF002PriorityWeight:
 # ---------------------------------------------------------------------------
 # RF-003 / RF-004: Policy Failure Weight (ANIF-304 §6.3)
 # ---------------------------------------------------------------------------
+
 
 class TestRF003RF004PolicyWeight:
     def test_two_denials_add_30(self) -> None:
@@ -167,6 +169,7 @@ class TestRF003RF004PolicyWeight:
 # RF-005: Network State Weight (ANIF-304 §6.4)
 # ---------------------------------------------------------------------------
 
+
 class TestRF005NetworkStateWeight:
     def test_degraded_adds_20(self) -> None:
         scorer = RiskScorer()
@@ -206,11 +209,14 @@ class TestRF005NetworkStateWeight:
 # RF-006: Action Type Risk Weight (ANIF-304 §6.5)
 # ---------------------------------------------------------------------------
 
+
 class TestRF006ActionTypeWeight:
     def test_isolate_segment_adds_25(self) -> None:
         scorer = RiskScorer()
         result = scorer.score(
-            make_intent(), make_policy_result(), NORMAL_NETWORK,
+            make_intent(),
+            make_policy_result(),
+            NORMAL_NETWORK,
             candidate_action_type="isolate_segment",
         )
         entry = next(e for e in result["justification"] if e["factor_id"] == "RF-006")
@@ -219,7 +225,9 @@ class TestRF006ActionTypeWeight:
     def test_reroute_traffic_adds_15(self) -> None:
         scorer = RiskScorer()
         result = scorer.score(
-            make_intent(), make_policy_result(), NORMAL_NETWORK,
+            make_intent(),
+            make_policy_result(),
+            NORMAL_NETWORK,
             candidate_action_type="reroute_traffic",
         )
         entry = next(e for e in result["justification"] if e["factor_id"] == "RF-006")
@@ -228,7 +236,9 @@ class TestRF006ActionTypeWeight:
     def test_apply_qos_adds_5(self) -> None:
         scorer = RiskScorer()
         result = scorer.score(
-            make_intent(), make_policy_result(), NORMAL_NETWORK,
+            make_intent(),
+            make_policy_result(),
+            NORMAL_NETWORK,
             candidate_action_type="apply_qos",
         )
         entry = next(e for e in result["justification"] if e["factor_id"] == "RF-006")
@@ -237,7 +247,9 @@ class TestRF006ActionTypeWeight:
     def test_scale_bandwidth_adds_5(self) -> None:
         scorer = RiskScorer()
         result = scorer.score(
-            make_intent(), make_policy_result(), NORMAL_NETWORK,
+            make_intent(),
+            make_policy_result(),
+            NORMAL_NETWORK,
             candidate_action_type="scale_bandwidth",
         )
         entry = next(e for e in result["justification"] if e["factor_id"] == "RF-006")
@@ -255,6 +267,7 @@ class TestRF006ActionTypeWeight:
 # ---------------------------------------------------------------------------
 # Risk score clamping (ANIF-304 §5.1, §11.1)
 # ---------------------------------------------------------------------------
+
 
 class TestRiskScoreClamping:
     def test_risk_score_clamped_to_100(self) -> None:
@@ -279,6 +292,7 @@ class TestRiskScoreClamping:
 # ---------------------------------------------------------------------------
 # Trust score (ANIF-304 §5.2, §11.4)
 # ---------------------------------------------------------------------------
+
 
 class TestTrustScore:
     def test_base_trust_is_100_minus_risk_with_no_penalties(self) -> None:
@@ -328,6 +342,7 @@ class TestTrustScore:
 # Threshold selection (ANIF-304 §7, §11.5, §11.6)
 # ---------------------------------------------------------------------------
 
+
 class TestThresholdSelection:
     def test_prod_uses_prod_threshold_set(self) -> None:
         """ANIF-304 §7.3: prod environment MUST use production threshold."""
@@ -355,6 +370,7 @@ class TestThresholdSelection:
 # ---------------------------------------------------------------------------
 # Safety decision correctness (ANIF-304 §7.1, §7.2)
 # ---------------------------------------------------------------------------
+
 
 class TestSafetyDecision:
     def test_prod_allow_below_40(self) -> None:
@@ -434,6 +450,7 @@ class TestSafetyDecision:
 # Justification format (ANIF-304 §8, §11.7)
 # ---------------------------------------------------------------------------
 
+
 class TestJustificationFormat:
     def test_all_six_factors_present(self) -> None:
         """ANIF-304 §11.2: all six factors MUST be evaluated for every intent."""
@@ -465,6 +482,7 @@ class TestJustificationFormat:
 # Determinism (ANIF-304 §4, §11.8)
 # ---------------------------------------------------------------------------
 
+
 class TestDeterminism:
     def test_same_inputs_same_scores(self) -> None:
         """ANIF-304 §4: given identical inputs, engine MUST always produce identical outputs."""
@@ -482,6 +500,7 @@ class TestDeterminism:
 # ---------------------------------------------------------------------------
 # scoring_id (ANIF-304 §9, §11.9)
 # ---------------------------------------------------------------------------
+
 
 class TestScoringId:
     def test_scoring_id_is_valid_uuid(self) -> None:
@@ -502,6 +521,7 @@ class TestScoringId:
 # Worked example (ANIF-304 §10)
 # ---------------------------------------------------------------------------
 
+
 class TestWorkedExample:
     def test_anif_304_section_10(self) -> None:
         """ANIF-304 §10: payments-gateway, prod, critical, 1 warning, degraded, reroute."""
@@ -515,7 +535,9 @@ class TestWorkedExample:
         }
         policy_result = make_policy_result(warnings=1)
         network = {"status": "degraded"}
-        result = scorer.score(intent, policy_result, network, candidate_action_type="reroute_traffic")
+        result = scorer.score(
+            intent, policy_result, network, candidate_action_type="reroute_traffic"
+        )
         # 30 + 10 + 0 + 5 + 20 + 15 = 80
         assert result["risk_score"] == 80
         # trust: 100 - 80 = 20, penalty -10 (critical) → 10

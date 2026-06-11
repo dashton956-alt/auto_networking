@@ -128,8 +128,4 @@ class StrikeService:
     def count_strikes(self, agent_id: uuid.UUID, window_minutes: int) -> int:
         """Count strikes for an agent within the given time window."""
         cutoff = datetime.now(UTC) - timedelta(minutes=window_minutes)
-        return sum(
-            1
-            for r in self._records
-            if r.agent_id == agent_id and r.recorded_at >= cutoff
-        )
+        return sum(1 for r in self._records if r.agent_id == agent_id and r.recorded_at >= cutoff)

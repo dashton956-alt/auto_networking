@@ -97,10 +97,7 @@ class FairnessChecker:
     def _check_sla_floor(
         self, inp: FairnessInput
     ) -> tuple[Literal["pass", "fail", "not_applicable"], str | None, float | None]:
-        if (
-            inp.action_type not in _RESOURCE_ALLOCATION_ACTIONS
-            or len(inp.affected_services) < 2
-        ):
+        if inp.action_type not in _RESOURCE_ALLOCATION_ACTIONS or len(inp.affected_services) < 2:
             return "not_applicable", None, None
 
         for svc in inp.affected_services:
@@ -119,9 +116,7 @@ class FairnessChecker:
 
         return "pass", None, None
 
-    def _check_freshness(
-        self, inp: FairnessInput
-    ) -> tuple[Literal["pass", "fail"], float | None]:
+    def _check_freshness(self, inp: FairnessInput) -> tuple[Literal["pass", "fail"], float | None]:
         for score in inp.canonical_state_freshness_scores:
             if score < _FRESHNESS_THRESHOLD:
                 log.warning(
@@ -133,9 +128,7 @@ class FairnessChecker:
                 return "fail", score
         return "pass", None
 
-    def _check_reproducibility(
-        self, inp: FairnessInput
-    ) -> tuple[
+    def _check_reproducibility(self, inp: FairnessInput) -> tuple[
         Literal["pass", "fail", "shadow_used", "shadow_unavailable", "not_applicable"],
         float | None,
         bool,

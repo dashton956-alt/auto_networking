@@ -12,14 +12,18 @@ def get_sot_adapter() -> SoTAdapter:
 
     if backend == "nautobot":
         from anif_platform.sot.nautobot import NautobotAdapter
+
         url = os.environ.get("NAUTOBOT_URL", "")
         token = os.environ.get("NAUTOBOT_TOKEN", "")
         if not url or not token:
-            raise SoTAdapterError("NAUTOBOT_URL and NAUTOBOT_TOKEN must be set when SOT_BACKEND=nautobot")
+            raise SoTAdapterError(
+                "NAUTOBOT_URL and NAUTOBOT_TOKEN must be set when SOT_BACKEND=nautobot"
+            )
         return NautobotAdapter(url=url, token=token)
 
     if backend == "netbox":
         from anif_platform.sot.netbox import NetBoxAdapter
+
         url = os.environ.get("NETBOX_URL", "")
         token = os.environ.get("NETBOX_TOKEN", "")
         if not url or not token:
@@ -28,10 +32,15 @@ def get_sot_adapter() -> SoTAdapter:
 
     if backend == "infrahub":
         from anif_platform.sot.infrahub import InfraHubAdapter
+
         url = os.environ.get("INFRAHUB_URL", "")
         token = os.environ.get("INFRAHUB_TOKEN", "")
         if not url or not token:
-            raise SoTAdapterError("INFRAHUB_URL and INFRAHUB_TOKEN must be set when SOT_BACKEND=infrahub")
+            raise SoTAdapterError(
+                "INFRAHUB_URL and INFRAHUB_TOKEN must be set when SOT_BACKEND=infrahub"
+            )
         return InfraHubAdapter(url=url, token=token)
 
-    raise SoTAdapterError(f"Unknown SOT_BACKEND: {backend!r} — must be nautobot | netbox | infrahub")
+    raise SoTAdapterError(
+        f"Unknown SOT_BACKEND: {backend!r} — must be nautobot | netbox | infrahub"
+    )

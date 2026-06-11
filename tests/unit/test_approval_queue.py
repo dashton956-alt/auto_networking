@@ -243,8 +243,12 @@ class TestExpirePending:
     async def test_expire_writes_audit_for_each_expired_ticket(self) -> None:
         """ANIF-406 §4.4.3: audit record MUST be written for each expiry event."""
         queue, session, writer = make_queue()
-        overdue1 = make_ticket(status="pending", expires_at=datetime.now(UTC) - timedelta(seconds=1))
-        overdue2 = make_ticket(status="pending", expires_at=datetime.now(UTC) - timedelta(seconds=1))
+        overdue1 = make_ticket(
+            status="pending", expires_at=datetime.now(UTC) - timedelta(seconds=1)
+        )
+        overdue2 = make_ticket(
+            status="pending", expires_at=datetime.now(UTC) - timedelta(seconds=1)
+        )
 
         mock_result = MagicMock()
         mock_result.scalars.return_value.all.return_value = [overdue1, overdue2]

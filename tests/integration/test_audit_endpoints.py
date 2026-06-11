@@ -82,9 +82,7 @@ class TestGetAuditWhy:
     ) -> None:
         intent_id = uuid.uuid4()
         writer = AuditWriter(db_session)
-        await writer.write(
-            make_record(intent_id, AuditStage.decision, AuditOutcome.escalated)
-        )
+        await writer.write(make_record(intent_id, AuditStage.decision, AuditOutcome.escalated))
 
         resp = await client.get(f"/audit/{intent_id}/why")
         assert resp.status_code == 200
@@ -125,9 +123,7 @@ class TestVerifyHashChain:
 
 @pytest.mark.asyncio
 class TestListAuditRecords:
-    async def test_returns_records(
-        self, client: AsyncClient, db_session: AsyncSession
-    ) -> None:
+    async def test_returns_records(self, client: AsyncClient, db_session: AsyncSession) -> None:
         intent_id = uuid.uuid4()
         writer = AuditWriter(db_session)
         await writer.write(make_record(intent_id, AuditStage.validate))
@@ -136,9 +132,7 @@ class TestListAuditRecords:
         assert resp.status_code == 200
         assert isinstance(resp.json(), list)
 
-    async def test_filter_by_stage(
-        self, client: AsyncClient, db_session: AsyncSession
-    ) -> None:
+    async def test_filter_by_stage(self, client: AsyncClient, db_session: AsyncSession) -> None:
         intent_id = uuid.uuid4()
         writer = AuditWriter(db_session)
         await writer.write(make_record(intent_id, AuditStage.validate))

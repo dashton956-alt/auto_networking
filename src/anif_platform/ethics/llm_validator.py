@@ -15,7 +15,7 @@ _CONFIDENCE_THRESHOLDS: dict[int, float] = {2: 0.65, 3: 0.80}
 _MAX_CANONICAL_STATE_AGE_SECONDS = 300  # 5 minutes — ANIF-722 §6.2
 
 
-class Stage4SecurityIncident(Exception):
+class Stage4SecurityIncidentError(Exception):
     """Raised when prompt hash mismatch is detected — ANIF-722 §8.4.
 
     This is a security incident, not a validation failure. MUST NOT be caught
@@ -72,12 +72,12 @@ class LLMValidationOutcome(BaseModel):
 class LLMOutputValidator:
     """Runs the ANIF-722 4-stage validation pipeline sequentially.
 
-    Stages MUST run in order. Stage 4 failure raises Stage4SecurityIncident
+    Stages MUST run in order. Stage 4 failure raises Stage4SecurityIncidentError
     rather than returning a blocked result — it is a security incident.
     """
 
     def validate(self, inp: LLMValidationInput) -> LLMValidationOutcome:
-        """Run all four stages in order. Returns outcome or raises Stage4SecurityIncident."""
+        """Run all four stages in order. Returns outcome or raises Stage4SecurityIncidentError."""
         # Stage 1: Schema check
         if not inp.output_schema_valid:
             log.warning(
@@ -173,7 +173,7 @@ class LLMOutputValidator:
                 recorded_hash=inp.prompt_hash_recorded,
                 submitted_hash=inp.prompt_hash_submitted,
             )
-            raise Stage4SecurityIncident(
+            raise Stage4SecurityIncidentError(
                 agent_id=inp.agent_id,
                 intent_id=inp.intent_id,
             )

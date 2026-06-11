@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import uuid
-from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -80,7 +78,9 @@ class TestApprovalGate:
         pkg = await broker.submit_package(make_package())
         pkg_id = pkg["package_id"]
 
-        await broker.reject_package(package_id=pkg_id, approver_id="governance-officer", reason="Evidence unverifiable")
+        await broker.reject_package(
+            package_id=pkg_id, approver_id="governance-officer", reason="Evidence unverifiable"
+        )
         with pytest.raises(KnowledgeBrokerError, match="not approved"):
             await broker.distribute(package_id=pkg_id)
 

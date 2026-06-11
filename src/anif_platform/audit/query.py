@@ -113,7 +113,9 @@ class AuditQueryService:
         if action_type is not None:
             query = query.where(AuditRecordRow.data["action_type"].astext == action_type)
         if environment is not None:
-            query = query.where(AuditRecordRow.data["input_summary"]["environment"].astext == environment)
+            query = query.where(
+                AuditRecordRow.data["input_summary"]["environment"].astext == environment
+            )
 
         query = query.limit(effective_limit).offset(offset)
 
@@ -145,9 +147,7 @@ class AuditQueryService:
                     "broken_at": str(row.record_id),
                     "record_count": len(rows),
                 }
-            recomputed = "sha256:" + hashlib.sha256(
-                _canonical_json(row.data).encode()
-            ).hexdigest()
+            recomputed = "sha256:" + hashlib.sha256(_canonical_json(row.data).encode()).hexdigest()
             if row.record_hash != recomputed:
                 return {
                     "valid": False,

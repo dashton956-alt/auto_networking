@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from enum import Enum
+from enum import StrEnum
 from typing import Annotated
 
 from pydantic import BaseModel, Field
 
 
-class RuleAction(str, Enum):
+class RuleAction(StrEnum):
     allow = "allow"
     deny = "deny"
     warn = "warn"

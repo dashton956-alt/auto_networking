@@ -1,7 +1,5 @@
 """Tests for IntentValidator — ANIF-301 §7 (VAL-001–VAL-007)."""
 
-import pytest
-
 from anif_platform.intent.validator import IntentValidator
 from anif_platform.schemas.intent import (
     Constraints,
@@ -131,9 +129,7 @@ class TestVAL005HighAvailabilityZones:
     def test_99_99_availability_requires_2_zones(self) -> None:
         intent = make_valid_prod_intent(
             objectives=Objectives(availability_percent=99.99),
-            constraints=Constraints(
-                region=Region.EU, encryption=True, allowed_zones=["eu-a"]
-            ),
+            constraints=Constraints(region=Region.EU, encryption=True, allowed_zones=["eu-a"]),
         )
         result = IntentValidator().validate(intent)
         assert result.intent_id is None
@@ -152,9 +148,7 @@ class TestVAL005HighAvailabilityZones:
     def test_99_9_availability_with_1_zone_passes(self) -> None:
         intent = make_valid_prod_intent(
             objectives=Objectives(availability_percent=99.9),
-            constraints=Constraints(
-                region=Region.EU, encryption=True, allowed_zones=["eu-a"]
-            ),
+            constraints=Constraints(region=Region.EU, encryption=True, allowed_zones=["eu-a"]),
         )
         result = IntentValidator().validate(intent)
         assert result.intent_id is not None

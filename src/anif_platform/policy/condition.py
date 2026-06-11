@@ -64,8 +64,14 @@ class ConditionEvaluator:
     """
 
     _VALID_OPERATORS = {
-        "equals", "not_equals", "greater_than", "less_than",
-        "contains", "not_contains", "in_list", "not_in_list",
+        "equals",
+        "not_equals",
+        "greater_than",
+        "less_than",
+        "contains",
+        "not_contains",
+        "in_list",
+        "not_in_list",
     }
 
     @classmethod
@@ -85,26 +91,21 @@ class ConditionEvaluator:
         field_path, operator, raw_value = parts
 
         if operator not in cls._VALID_OPERATORS:
-            raise ConditionParseError(
-                f"Unknown operator '{operator}' in condition '{condition}'"
-            )
+            raise ConditionParseError(f"Unknown operator '{operator}' in condition '{condition}'")
 
         missing = _field_missing(field_path, intent)
         field_value = _get_field(field_path, intent)
 
-        # Missing field behaviour — ANIF-302 §6.3
+        # Missing field behaviour — ANIF-302 §6.3: negative operators match
+        # on a missing field; all others (and unknown operators) do not.
         if missing:
-            if operator in ("equals", "in_list", "contains", "greater_than", "less_than"):
-                return False
-            if operator in ("not_equals", "not_in_list", "not_contains"):
-                return True
-            return False
+            return operator in ("not_equals", "not_in_list", "not_contains")
 
         if operator == "equals":
-            return field_value == _parse_bool_or_string(raw_value)
+            return bool(field_value == _parse_bool_or_string(raw_value))
 
         if operator == "not_equals":
-            return field_value != _parse_bool_or_string(raw_value)
+            return bool(field_value != _parse_bool_or_string(raw_value))
 
         if operator == "greater_than":
             try:

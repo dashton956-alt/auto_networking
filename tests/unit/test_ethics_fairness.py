@@ -4,8 +4,6 @@ from __future__ import annotations
 
 import uuid
 
-import pytest
-
 from anif_platform.ethics.fairness import (
     AffectedService,
     FairnessChecker,
@@ -44,9 +42,7 @@ def test_sla_floor_not_applicable_for_isolate_segment() -> None:
 def test_sla_floor_not_applicable_when_fewer_than_two_services() -> None:
     """ANIF-723 §4.2: applies only when two or more services with declared SLA tiers."""
     service = AffectedService(name="svc-a", availability_percent=99.0, projected_allocation=95.0)
-    result = FairnessChecker().check(
-        _base_input(action_type="apply_qos", services=[service])
-    )
+    result = FairnessChecker().check(_base_input(action_type="apply_qos", services=[service]))
     assert result.sla_floor_result == "not_applicable"
 
 

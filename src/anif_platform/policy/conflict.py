@@ -22,9 +22,7 @@ def _decisions_conflict(d_a: str, d_b: str) -> bool:
     if "deny" in (d_a, d_b):
         return True
     # warn vs allow
-    if set((d_a, d_b)) == {"warn", "allow"}:
-        return True
-    return False
+    return {d_a, d_b} == {"warn", "allow"}
 
 
 class ConflictResolver:

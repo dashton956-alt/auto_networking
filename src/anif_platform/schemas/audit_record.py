@@ -3,14 +3,14 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from enum import Enum
+from enum import Enum, StrEnum
 from typing import Annotated, Any
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 
-class AuditStage(str, Enum):
+class AuditStage(StrEnum):
     """Pipeline stages that produce audit records — ANIF-107 §4.1.2."""
 
     validate = "validate"
@@ -23,7 +23,7 @@ class AuditStage(str, Enum):
     agent_lifecycle = "agent_lifecycle"
 
 
-class AuditOutcome(str, Enum):
+class AuditOutcome(StrEnum):
     """Stage outcome values — ANIF-107 §4.2."""
 
     success = "success"
@@ -32,14 +32,14 @@ class AuditOutcome(str, Enum):
     blocked = "blocked"
 
 
-class GovernanceMode(str, Enum):
+class GovernanceMode(StrEnum):
     auto = "auto"
     manual_review = "manual_review"
     block = "block"
     council_review = "council_review"
 
 
-class PostVerificationOutcome(str, Enum):
+class PostVerificationOutcome(StrEnum):
     pass_ = "pass"
     fail = "fail"
     pending = "pending"
@@ -51,7 +51,7 @@ class PostVerificationOutcome(str, Enum):
         return None
 
 
-class RollbackOutcome(str, Enum):
+class RollbackOutcome(StrEnum):
     success = "success"
     failure = "failure"
 
@@ -63,40 +63,40 @@ class AgentTier(int, Enum):
     tier_3 = 3
 
 
-class AgentTrustLevel(str, Enum):
+class AgentTrustLevel(StrEnum):
     SYSTEM = "SYSTEM"
     VERIFIED = "VERIFIED"
     PROVISIONAL = "PROVISIONAL"
     UNTRUSTED = "UNTRUSTED"
 
 
-class HarmClass(str, Enum):
+class HarmClass(StrEnum):
     service = "service"
     infrastructure = "infrastructure"
     cascading = "cascading"
     none = "none"
 
 
-class HarmGateOutcome(str, Enum):
+class HarmGateOutcome(StrEnum):
     pass_ = "pass"
     manual_review_forced = "manual_review_forced"
     council_review_forced = "council_review_forced"
 
 
-class FairnessResult(str, Enum):
+class FairnessResult(StrEnum):
     pass_ = "pass"
     fail = "fail"
     not_applicable = "not_applicable"
 
 
-class ReproducibilityResult(str, Enum):
+class ReproducibilityResult(StrEnum):
     pass_ = "pass"
     fail = "fail"
     shadow_used = "shadow_used"
     shadow_unavailable = "shadow_unavailable"
 
 
-class LLMValidationResult(str, Enum):
+class LLMValidationResult(StrEnum):
     pass_ = "pass"
     fail = "fail"
     skipped = "skipped"
@@ -131,9 +131,7 @@ class AuditRecord(BaseModel):
     # ── Base required fields (ANIF-107 §4.2) ─────────────────────────────
     record_id: UUID = Field(default_factory=uuid4)
     intent_id: UUID
-    timestamp: datetime = Field(
-        default_factory=lambda: datetime.now(UTC)
-    )
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
     stage: AuditStage
     operator_id: str | None = None
     input_summary: dict[str, Any]

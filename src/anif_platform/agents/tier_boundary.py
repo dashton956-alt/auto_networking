@@ -1,4 +1,5 @@
 """Tier boundary enforcement — ANIF-802 §4, ANIF-843 §6."""
+
 from __future__ import annotations
 
 import structlog

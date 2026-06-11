@@ -9,8 +9,8 @@ from typing import Any
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
-from anif_platform.auth import get_api_key
 from anif_platform.audit.writer import AuditWriter
+from anif_platform.auth import get_api_key
 from anif_platform.intent.registry import IntentRegistry
 from anif_platform.policy.engine import PolicyEngine
 from anif_platform.schemas.audit_record import AuditOutcome, AuditRecord, AuditStage

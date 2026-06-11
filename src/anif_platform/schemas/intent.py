@@ -2,32 +2,32 @@
 
 from __future__ import annotations
 
-from enum import Enum
+from enum import StrEnum
 from typing import Annotated, Any
 
 from pydantic import BaseModel, Field, model_validator
 
 
-class Environment(str, Enum):
+class Environment(StrEnum):
     prod = "prod"
     staging = "staging"
     dev = "dev"
 
 
-class Region(str, Enum):
+class Region(StrEnum):
     EU = "EU"
     US = "US"
     APAC = "APAC"
 
 
-class PolicyName(str, Enum):
+class PolicyName(StrEnum):
     zero_trust = "zero_trust"
     no_public_ingress = "no_public_ingress"
     pci_compliant = "pci_compliant"
     data_residency = "data_residency"
 
 
-class Priority(str, Enum):
+class Priority(StrEnum):
     low = "low"
     medium = "medium"
     high = "high"

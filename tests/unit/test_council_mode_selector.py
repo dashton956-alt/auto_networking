@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 from anif_platform.council.mode_selector import (
     DeliberationModel,
     ModeSelector,
@@ -99,9 +97,7 @@ class TestDecisionMatrix:
 
     def test_rule1_takes_priority_over_rule2(self) -> None:
         """CR-902-01: ethics_flag beats active_strike (rule 1 > rule 2)."""
-        result = ModeSelector.select(
-            _inp(ethics_flag="present", strike_history="active_strike")
-        )
+        result = ModeSelector.select(_inp(ethics_flag="present", strike_history="active_strike"))
         assert result.rule_matched == 1
         assert result.mode_selected == DeliberationModel.consensus
 

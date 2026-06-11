@@ -26,9 +26,7 @@ class StrikeRecordRow(Base):
     strike_id: Mapped[_uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=_uuid.uuid4
     )
-    agent_id: Mapped[_uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), nullable=False, index=True
-    )
+    agent_id: Mapped[_uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
     intent_id: Mapped[_uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
     reason: Mapped[str] = mapped_column(String(255), nullable=False)
     recorded_at: Mapped[datetime] = mapped_column(

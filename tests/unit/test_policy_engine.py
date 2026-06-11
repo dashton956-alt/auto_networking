@@ -16,6 +16,7 @@ def engine(tmp_path) -> PolicyEngine:
     """Engine loaded with the real built-in policies."""
     import shutil
     from pathlib import Path
+
     src = Path(__file__).parent.parent.parent / "policies"
     dst = tmp_path / "policies"
     shutil.copytree(src, dst)

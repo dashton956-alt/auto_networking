@@ -1,4 +1,5 @@
 """Unit tests for AgentRegistry and DB models — ANIF-803, ANIF-805."""
+
 from __future__ import annotations
 
 import hashlib
@@ -183,9 +184,7 @@ async def test_register_computes_capabilities_hash() -> None:
         tier=1,
         manifest=manifest,
     )
-    expected = hashlib.sha256(
-        json.dumps(manifest, sort_keys=True).encode()
-    ).hexdigest()
+    expected = hashlib.sha256(json.dumps(manifest, sort_keys=True).encode()).hexdigest()
     assert agent.capabilities_hash == expected
 
 

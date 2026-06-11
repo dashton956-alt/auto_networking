@@ -42,7 +42,9 @@ async def open_build_time_session(
         svc = BuildTimeCouncil(session=session)
         return await svc.open_session(request)
     except CouncilInputError as exc:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+        ) from exc
 
 
 @router.post("/council/build-time/{council_id}/decision", response_model=dict[str, Any])
@@ -57,7 +59,9 @@ async def record_build_time_decision(
         svc = BuildTimeCouncil(session=session)
         return await svc.record_decision(council_id=council_id, decision=decision)
     except CouncilInputError as exc:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+        ) from exc
 
 
 @router.post("/council/runtime", response_model=dict[str, Any])
@@ -82,7 +86,9 @@ async def apply_runtime_timeout(
         svc = RuntimeCouncil(session=session)
         return await svc.apply_timeout(council_id=council_id)
     except CouncilInputError as exc:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+        ) from exc
 
 
 @router.post("/council/review", response_model=dict[str, Any])
@@ -108,4 +114,6 @@ async def record_review_decision(
         svc = ReviewCouncil(session=session)
         return await svc.record_decision(council_id=council_id, decision=decision)
     except CouncilInputError as exc:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+        ) from exc

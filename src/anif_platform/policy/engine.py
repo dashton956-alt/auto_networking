@@ -52,8 +52,7 @@ class PolicyEngine:
             if zt_result is not None:
                 # Replace the existing zero_trust result
                 policy_results = [
-                    zt_result if r["policy_name"] == "zero_trust" else r
-                    for r in policy_results
+                    zt_result if r["policy_name"] == "zero_trust" else r for r in policy_results
                 ]
 
         # Additional no_public_ingress logic — ANIF-302 §7.2

@@ -66,9 +66,7 @@ async def client(db_session: Any) -> AsyncGenerator[AsyncClient, None]:
 
     app.dependency_overrides[get_audit_query_service] = lambda: AuditQueryService(db_session)
 
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as c:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         yield c
 
     app.dependency_overrides.clear()

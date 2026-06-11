@@ -2,20 +2,20 @@
 
 from __future__ import annotations
 
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 from pydantic import BaseModel
 
 
-class ActionType(str, Enum):
+class ActionType(StrEnum):
     reroute_traffic = "reroute_traffic"
     apply_qos = "apply_qos"
     scale_bandwidth = "scale_bandwidth"
     isolate_segment = "isolate_segment"
 
 
-class RiskLevel(str, Enum):
+class RiskLevel(StrEnum):
     low = "low"
     medium = "medium"
     high = "high"

@@ -1,4 +1,5 @@
 """SQLAlchemy ORM models for agent infrastructure — ANIF-803, ANIF-805, ANIF-843."""
+
 from __future__ import annotations
 
 import uuid

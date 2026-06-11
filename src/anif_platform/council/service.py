@@ -120,9 +120,7 @@ class BuildTimeCouncil:
         row.decision = decision.decision
         row.decision_rationale = decision.decision_rationale
         row.anif_references_json = json.dumps(decision.anif_references)
-        row.conditions_json = json.dumps(
-            [c.model_dump() for c in decision.conditions]
-        )
+        row.conditions_json = json.dumps([c.model_dump() for c in decision.conditions])
         row.votes_json = json.dumps(decision.votes)
         row.session_close_timestamp = now
         row.closed = True
@@ -327,12 +325,8 @@ class ReviewCouncil:
 
         now = datetime.now(UTC)
         row.decision = "completed"
-        row.accountability_determination_json = json.dumps(
-            decision.accountability_determination
-        )
-        row.policy_change_recommendations_json = json.dumps(
-            decision.policy_change_recommendations
-        )
+        row.accountability_determination_json = json.dumps(decision.accountability_determination)
+        row.policy_change_recommendations_json = json.dumps(decision.policy_change_recommendations)
         row.learning_packages_json = json.dumps(decision.learning_packages)
         row.session_close_timestamp = now
         row.closed = True

@@ -10,7 +10,7 @@ import pytest
 from anif_platform.ethics.llm_validator import (
     LLMOutputValidator,
     LLMValidationInput,
-    Stage4SecurityIncident,
+    Stage4SecurityIncidentError,
 )
 
 
@@ -114,10 +114,10 @@ def test_stage4_pass_when_hashes_match() -> None:
 
 
 def test_stage4_hash_mismatch_raises_security_incident() -> None:
-    """ANIF-722 §8.4: hash mismatch MUST raise Stage4SecurityIncident."""
+    """ANIF-722 §8.4: hash mismatch MUST raise Stage4SecurityIncidentError."""
     inp = _valid_input()
     inp.prompt_hash_submitted = "tampered_hash_value"
-    with pytest.raises(Stage4SecurityIncident):
+    with pytest.raises(Stage4SecurityIncidentError):
         LLMOutputValidator().validate(inp)
 
 

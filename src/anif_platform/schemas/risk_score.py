@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from enum import Enum
+from enum import StrEnum
 from typing import Annotated, Any
 
 from pydantic import BaseModel, Field, computed_field, model_validator
 
 
-class SafetyDecision(str, Enum):
+class SafetyDecision(StrEnum):
     allow = "allow"
     warn = "warn"
     block = "block"

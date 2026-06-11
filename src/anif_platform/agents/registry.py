@@ -1,4 +1,5 @@
 """AgentRegistry service — ANIF-803 lifecycle management, ANIF-805 state constraints."""
+
 from __future__ import annotations
 
 import hashlib
@@ -167,9 +168,7 @@ class AgentRegistry:
                 if agent.provisional_until is not None
                 else "unknown (provisional_until not set)"
             )
-            raise ProvisionalPeriodError(
-                f"Agent must remain PROVISIONAL until {until_str}"
-            )
+            raise ProvisionalPeriodError(f"Agent must remain PROVISIONAL until {until_str}")
 
         now = datetime.now(UTC)
         event = AgentLifecycleEventRow(
@@ -266,7 +265,9 @@ class AgentRegistry:
         agent.certificate_pem = certificate_pem
         agent.certificate_expires_at = certificate_expires_at
         await self._session.flush()
-        log.info("agent_cert_recorded", agent_id=agent_id, expires_at=certificate_expires_at.isoformat())
+        log.info(
+            "agent_cert_recorded", agent_id=agent_id, expires_at=certificate_expires_at.isoformat()
+        )
         await self._writer.write(
             AuditRecord(
                 intent_id=_agent_chain_id(agent_id),

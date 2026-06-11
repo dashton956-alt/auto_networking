@@ -31,7 +31,9 @@ async def submit_knowledge_package(
         broker = KnowledgeBroker(session=session)
         return await broker.submit_package(package)
     except KnowledgeBrokerError as exc:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+        ) from exc
 
 
 @router.post("/learning/packages/{package_id}/approve", response_model=dict[str, Any])

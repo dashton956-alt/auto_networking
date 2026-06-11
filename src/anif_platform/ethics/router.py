@@ -57,7 +57,6 @@ async def human_override(request: OverrideRequest) -> dict[str, Any]:
         "intent_id": request.intent_id,
         "acknowledged_at": acknowledged_at,
         "message": (
-            f"Override received for intent {request.intent_id}. "
-            "Pipeline halt signal dispatched."
+            f"Override received for intent {request.intent_id}. " "Pipeline halt signal dispatched."
         ),
     }

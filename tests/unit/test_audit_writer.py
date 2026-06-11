@@ -19,6 +19,7 @@ def make_record(intent_id: uuid.UUID, stage: AuditStage = AuditStage.validate) -
     chain: list = []
     if stage in (AuditStage.decision, AuditStage.governance):
         from anif_platform.schemas.audit_record import ReasoningStep
+
         chain = [ReasoningStep(step=1, description="x", decision="y")]
     return AuditRecord(
         intent_id=intent_id,
@@ -103,9 +104,7 @@ class TestAuditWriter:
 
         assert row2.prev_hash == row1.record_hash
 
-    async def test_record_hash_is_sha256_of_canonical_json(
-        self, db_session: AsyncSession
-    ) -> None:
+    async def test_record_hash_is_sha256_of_canonical_json(self, db_session: AsyncSession) -> None:
         """record_hash MUST be SHA-256 of canonical JSON excluding hash fields — ANIF-107 §4.7.2."""
         writer = AuditWriter(db_session)
         intent_id = uuid.uuid4()

@@ -6,6 +6,7 @@ import uuid
 from datetime import UTC, datetime
 
 import pytest
+from pydantic import ValidationError
 
 from anif_platform.ethics.constraints import (
     ActionTypeValidator,
@@ -13,7 +14,6 @@ from anif_platform.ethics.constraints import (
     StrikeService,
 )
 from anif_platform.exceptions import ANIFError
-
 
 # ── ActionTypeValidator ────────────────────────────────────────────────────
 
@@ -60,7 +60,7 @@ def test_startup_validation_passes_with_correct_enum() -> None:
 
 def test_rollback_plan_requires_rollback_action_type() -> None:
     """ANIF-721 §5.3: rollback_action_type is required."""
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         RollbackPlan(  # type: ignore[call-arg]
             rollback_target="segment-a",
             rollback_within_seconds=60,
@@ -70,7 +70,7 @@ def test_rollback_plan_requires_rollback_action_type() -> None:
 
 def test_rollback_plan_requires_non_empty_target() -> None:
     """ANIF-721 §5.3: rollback_target is required and non-empty."""
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         RollbackPlan(
             rollback_action_type="reroute_traffic",
             rollback_target="",

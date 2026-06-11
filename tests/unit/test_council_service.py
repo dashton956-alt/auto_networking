@@ -21,7 +21,6 @@ from anif_platform.council.service import (
     RuntimeCouncil,
 )
 
-
 # ── Build-Time Council ────────────────────────────────────────────────────
 
 

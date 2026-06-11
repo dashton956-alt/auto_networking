@@ -4,8 +4,6 @@ from __future__ import annotations
 
 import uuid
 
-import pytest
-
 from anif_platform.governance.gate import GovernanceGate
 
 

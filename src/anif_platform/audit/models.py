@@ -8,7 +8,7 @@ from uuid import UUID
 
 from sqlalchemy import DateTime, Index, Integer, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.dialects.postgresql import UUID as PgUUID
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from anif_platform.database import Base
@@ -28,12 +28,10 @@ class AuditRecordRow(Base):
     __tablename__ = "audit_records"
 
     # Primary key
-    record_id: Mapped[UUID] = mapped_column(
-        PgUUID(as_uuid=True), primary_key=True, nullable=False
-    )
+    record_id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), primary_key=True, nullable=False)
 
     # Indexed lookup columns
-    intent_id: Mapped[UUID] = mapped_column(PgUUID(as_uuid=True), nullable=False, index=True)
+    intent_id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), nullable=False, index=True)
     timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     stage: Mapped[str] = mapped_column(String(32), nullable=False)
     outcome: Mapped[str] = mapped_column(String(32), nullable=False)
@@ -42,7 +40,7 @@ class AuditRecordRow(Base):
     # Hash chain fields
     record_hash: Mapped[str | None] = mapped_column(String(71), nullable=True)  # "sha256:<64hex>"
     prev_hash: Mapped[str | None] = mapped_column(String(71), nullable=True)
-    chain_id: Mapped[UUID | None] = mapped_column(PgUUID(as_uuid=True), nullable=True)
+    chain_id: Mapped[UUID | None] = mapped_column(PG_UUID(as_uuid=True), nullable=True)
 
     # Duration for SLA monitoring
     duration_ms: Mapped[int] = mapped_column(Integer, nullable=False)

@@ -134,6 +134,7 @@ class TestIntent:
     def test_intent_id_cannot_be_set_by_author(self) -> None:
         """ANIF-300 §4.4: author-supplied IDs MUST be rejected."""
         import uuid
+
         with pytest.raises(ValidationError):
             Intent(
                 service="payments",

@@ -104,17 +104,17 @@ app = FastAPI(
 
 async def _get_session_writer(request: Request) -> AsyncGenerator[AuditWriter, None]:
     async with async_session_factory() as session:
-        yield AuditWriter(session)  # type: ignore[misc]
+        yield AuditWriter(session)
 
 
 async def _get_session_registry(request: Request) -> AsyncGenerator[IntentRegistry, None]:
     async with async_session_factory() as session:
-        yield IntentRegistry(session)  # type: ignore[misc]
+        yield IntentRegistry(session)
 
 
 async def _get_session_query(request: Request) -> AsyncGenerator[AuditQueryService, None]:
     async with async_session_factory() as session:
-        yield AuditQueryService(session)  # type: ignore[misc]
+        yield AuditQueryService(session)
 
 
 async def _get_session_approval_queue(request: Request) -> AsyncGenerator[ApprovalQueue, None]:

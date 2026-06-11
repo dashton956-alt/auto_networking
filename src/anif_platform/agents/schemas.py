@@ -1,14 +1,15 @@
 """Pydantic schemas for agent infrastructure — ANIF-801, ANIF-803, ANIF-805, ANIF-843."""
+
 from __future__ import annotations
 
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 from pydantic import BaseModel, Field
 
 
-class AgentLifecycleState(str, Enum):
+class AgentLifecycleState(StrEnum):
     """Agent lifecycle states — ANIF-803 §4."""
 
     PROPOSED = "PROPOSED"

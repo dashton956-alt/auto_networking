@@ -1,4 +1,5 @@
 """Unit tests for TierBoundaryChecker — ANIF-802, ANIF-843 §6."""
+
 from __future__ import annotations
 
 import pytest
