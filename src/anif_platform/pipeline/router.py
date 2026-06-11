@@ -216,6 +216,17 @@ async def orchestrate(
         "manual_review": AuditOutcome.escalated,
         "block": AuditOutcome.blocked,
     }
+    # ANIF-107 §4.2.2: decision-stage records MUST carry a reasoning chain.
+    # The DecisionEngine already produced one (D-001..D-008); map it through.
+    decision_reasoning = [
+        ReasoningStep(
+            step=entry["step"],
+            description=f"{entry['rule_id']}: {entry['condition_evaluated']}",
+            decision=str(entry["outcome"]),
+            rationale=entry.get("rationale"),
+        )
+        for entry in decision_result.get("reasoning_chain", [])
+    ]
     await writer.write(
         AuditRecord(
             intent_id=intent_id,
@@ -232,6 +243,7 @@ async def orchestrate(
             },
             outcome=decision_outcome_map.get(decision_result["mode"], AuditOutcome.success),
             duration_ms=duration_ms,
+            reasoning_chain=decision_reasoning,
         )
     )
 
