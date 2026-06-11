@@ -3,8 +3,8 @@
 > This document is maintained by the `architecture-agent`. Do not edit manually
 > without also updating the relevant `.drawio` diagram files.
 
-**Last updated by:** architecture-agent (post-F3)
-**Platform version:** 0.1.0 — backend phases B1–B8 complete; frontend F1–F3 complete
+**Last updated by:** architecture-agent (post-F4)
+**Platform version:** 0.1.0 — backend phases B1–B8 complete; frontend F1–F4 complete
 
 ---
 
@@ -72,8 +72,9 @@ policy-stage audit writes.
   record is durable before any handler returns (ANIF-107 §4.3.1).
 - Per-request session factories in `main.py` commit at teardown — business
   rows (intents, tickets, executions) persist across requests.
-- All routers require the `X-API-Key` header (`ANIF_API_KEY` env var);
-  `/override` additionally requires `X-Operator-Id` for attribution.
+- All routers — including audit reads — require the `X-API-Key` header
+  (`ANIF_API_KEY` env var); `/override` additionally requires
+  `X-Operator-Id` for attribution.
 - Dependency injection throughout; `main.py` is the only composition root.
 
 ---
@@ -142,6 +143,17 @@ Playwright + axe-core for WCAG 2.1 AA audits.
 - Operator identity ("Acting as") sent as `X-Operator-Id`/`X-Operator-Roles`;
   RBAC (senior_engineer approval, no self-approval) enforced server-side.
 
+### Audit Trail Viewer (F4 — complete)
+
+- `/audit` — queryable log over `GET /audit` (stage, outcome, environment,
+  operator, date range; offset pagination). Each row expands to the
+  record's reasoning chain, policy results, and input/output summaries.
+- `/audit/:intentId` — intent history timeline: hash-chain verification
+  banner (`/verify`, ANIF-107 §4.7.3), synthesised "why" panel, and a
+  chronological timeline with per-record reasoning expanders.
+- Orchestrator decision-stage records now carry the DecisionEngine's
+  D-001..D-008 reasoning chain (was dropped; §4.2.2 violation).
+
 ### Pages
 
 | Page | Status | Phase | Backend Dependency |
@@ -149,7 +161,7 @@ Playwright + axe-core for WCAG 2.1 AA audits.
 | Design System showcase | Implemented | F1 | None |
 | Intent Dashboard | Implemented | F2 | B2 (Intent API) |
 | Approval Queue | Implemented | F3 | B4 (Approval Queue API) |
-| Audit Trail Viewer | Not started | F4 | B2 ✓ ready |
+| Audit Trail Viewer | Implemented | F4 | B2 (Audit API) |
 | Topology View | Not started | F5 | B5 ✓ ready (SoT adapters still stubbed) |
 | Risk & Governance | Not started | F6 | B8 ✓ ready |
 
@@ -204,7 +216,8 @@ All diagrams are in `docs/architecture/diagrams/`. Open with draw.io or diagrams
 
 ## Test Baseline
 
-453 backend tests passing (unit + integration), including a cross-request
-persistence regression test through the real app wiring.
+460 backend tests passing (unit + integration), including real-wiring
+regressions for cross-request persistence, full-pipeline orchestration,
+and audit endpoint auth.
 Integration tests require the Docker Postgres (`anif` / `anif_test` databases).
-Frontend: 7 Playwright axe audits (WCAG 2.1 AA, mocked API) — 0 violations.
+Frontend: 9 Playwright axe audits (WCAG 2.1 AA, mocked API) — 0 violations.
