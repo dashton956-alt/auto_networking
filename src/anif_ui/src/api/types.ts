@@ -98,6 +98,7 @@ export interface AuditRecord {
   timestamp: string;
   outcome: "success" | "failure" | "blocked" | "escalated" | string;
   duration_ms: number;
+  operator_id?: string | null;
   input_summary: Record<string, unknown>;
   output_summary: Record<string, unknown>;
   reasoning_chain?: Array<{

@@ -1,17 +1,19 @@
 import { Route, Routes } from "react-router-dom";
 import { AppShell } from "@/layouts/AppShell";
 import ApprovalQueuePage from "@/pages/ApprovalQueuePage";
+import AuditTrailPage from "@/pages/AuditTrailPage";
 import DesignSystemPage from "@/pages/DesignSystemPage";
 import IntentDetailPage from "@/pages/IntentDetailPage";
 import IntentListPage from "@/pages/IntentListPage";
 import IntentSubmitPage from "@/pages/IntentSubmitPage";
+import IntentTimelinePage from "@/pages/IntentTimelinePage";
 import TicketReviewPage from "@/pages/TicketReviewPage";
 
 function PlaceholderPage({ title }: { title: string }) {
   return (
     <div>
       <h1 className="text-2xl font-bold text-chrome-900">{title}</h1>
-      <p className="mt-2 text-sm text-chrome-600">Implementation pending — coming in F4–F6.</p>
+      <p className="mt-2 text-sm text-chrome-600">Implementation pending — coming in F5–F6.</p>
     </div>
   );
 }
@@ -42,7 +44,11 @@ export default function App() {
       />
       <Route
         path="/audit"
-        element={<Shell title="Audit Trail"><PlaceholderPage title="F4 Audit Trail" /></Shell>}
+        element={<Shell title="Audit Trail"><AuditTrailPage /></Shell>}
+      />
+      <Route
+        path="/audit/:intentId"
+        element={<Shell title="Intent Timeline"><IntentTimelinePage /></Shell>}
       />
       <Route
         path="/topology"

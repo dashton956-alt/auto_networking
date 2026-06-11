@@ -100,6 +100,10 @@ async function mockApi(page: Page) {
   await page.route("**/api/governance/tickets", (route) =>
     route.fulfill({ json: { pending_count: 1, tickets: [TICKET] } }),
   );
+  await page.route(`**/api/audit/${INTENT_ID}/verify`, (route) =>
+    route.fulfill({ json: { valid: true, broken_at: null, record_count: 4 } }),
+  );
+  await page.route("**/api/audit?**", (route) => route.fulfill({ json: AUDIT_RECORDS }));
 }
 
 async function expectNoViolations(page: Page) {
@@ -150,6 +154,24 @@ test.describe("WCAG 2.1 AA audit", () => {
     await page.goto(`/approvals/${TICKET.ticket_id}`);
     await page.getByRole("button", { name: "Reject…" }).click();
     await page.getByRole("button", { name: "Confirm rejection" }).waitFor();
+    await expectNoViolations(page);
+  });
+
+  test("audit trail page has no accessibility violations", async ({ page }) => {
+    await mockApi(page);
+    await page.goto("/audit");
+    await page.getByRole("button", { name: "Apply filters" }).waitFor();
+    // Expand a reasoning row so the expanded state is audited too.
+    await page.getByRole("button", { name: /Expand reasoning for governance/ }).click();
+    await page.getByText("Reasoning chain").first().waitFor();
+    await expectNoViolations(page);
+  });
+
+  test("intent timeline page has no accessibility violations", async ({ page }) => {
+    await mockApi(page);
+    await page.goto(`/audit/${INTENT_ID}`);
+    await page.getByText("Hash chain verified").waitFor();
+    await page.getByRole("button", { name: "Show reasoning" }).first().click();
     await expectNoViolations(page);
   });
 
