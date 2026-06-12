@@ -51,6 +51,10 @@ from anif_platform.policy.router import get_audit_writer as policy_get_writer
 from anif_platform.policy.router import get_intent_registry as policy_get_registry
 from anif_platform.policy.router import get_policy_engine as policy_get_engine
 from anif_platform.policy.router import router as policy_router
+from anif_platform.sot import get_sot_adapter
+from anif_platform.sot.protocol import SoTAdapter
+from anif_platform.sot.router import get_sot_adapter_dep
+from anif_platform.sot.router import router as sot_router
 
 log = structlog.get_logger(__name__)
 
@@ -148,6 +152,10 @@ async def _get_session_raw(request: Request) -> AsyncGenerator[None, None]:
         await session.commit()
 
 
+def _get_configured_sot_adapter() -> SoTAdapter:
+    return get_sot_adapter()
+
+
 # ── Dependency overrides ──────────────────────────────────────────────────
 
 app.dependency_overrides[get_audit_query_service] = _get_session_query
@@ -167,6 +175,7 @@ app.dependency_overrides[exec_get_executor] = _get_session_executor
 app.dependency_overrides[pipeline_get_executor] = _get_session_executor
 app.dependency_overrides[council_get_session] = _get_session_raw
 app.dependency_overrides[learning_get_session] = _get_session_raw
+app.dependency_overrides[get_sot_adapter_dep] = _get_configured_sot_adapter
 
 
 # ── Webhook endpoint (when GIT_WATCHER_MODE includes webhook) ────────────
@@ -202,3 +211,4 @@ app.include_router(execution_router)
 app.include_router(override_router)
 app.include_router(council_router)
 app.include_router(learning_router)
+app.include_router(sot_router)

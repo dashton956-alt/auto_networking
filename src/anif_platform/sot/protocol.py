@@ -1,6 +1,6 @@
 """Source-of-Truth adapter protocol — defines the interface all SoT backends must implement."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Protocol, runtime_checkable
 
 
@@ -12,6 +12,9 @@ class Device:
     platform: str
     primary_ip: str | None
     tags: list[str]
+    # Write-back metadata (intent_status, last_intent_id, intent_applied_at)
+    # — ANIF-307 write-back contract; read by the F5 topology overlay.
+    custom_fields: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass
@@ -46,6 +49,10 @@ class SoTAdapter(Protocol):
 
     def list_devices(self, site: str | None = None) -> list[Device]:
         """List devices, optionally filtered by site."""
+        ...
+
+    def list_interfaces(self, device: str) -> list[Interface]:
+        """List the interfaces of a device."""
         ...
 
     def get_topology(self, site: str) -> Topology:

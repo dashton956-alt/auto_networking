@@ -1,4 +1,4 @@
-"""Source-of-Truth adapter — Nautobot, NetBox, or InfraHub."""
+"""Source-of-Truth adapter — local file, Nautobot, NetBox, or InfraHub."""
 
 import os
 
@@ -9,6 +9,14 @@ from anif_platform.sot.protocol import SoTAdapter
 def get_sot_adapter() -> SoTAdapter:
     """Return the configured SoT adapter based on SOT_BACKEND env var."""
     backend = os.environ.get("SOT_BACKEND", "nautobot").lower()
+
+    if backend == "local":
+        from anif_platform.sot.local import LocalSoTAdapter
+
+        inventory = os.environ.get("SOT_LOCAL_INVENTORY", "")
+        if not inventory:
+            raise SoTAdapterError("SOT_LOCAL_INVENTORY must be set when SOT_BACKEND=local")
+        return LocalSoTAdapter(inventory)
 
     if backend == "nautobot":
         from anif_platform.sot.nautobot import NautobotAdapter
@@ -42,5 +50,5 @@ def get_sot_adapter() -> SoTAdapter:
         return InfraHubAdapter(url=url, token=token)
 
     raise SoTAdapterError(
-        f"Unknown SOT_BACKEND: {backend!r} — must be nautobot | netbox | infrahub"
+        f"Unknown SOT_BACKEND: {backend!r} — must be local | nautobot | netbox | infrahub"
     )

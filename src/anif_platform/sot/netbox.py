@@ -1,6 +1,6 @@
 """NetBox 3.x Source-of-Truth adapter."""
 
-from anif_platform.sot.protocol import Device, Prefix, Topology
+from anif_platform.sot.protocol import Device, Interface, Prefix, Topology
 
 
 class NetBoxAdapter:
@@ -15,6 +15,9 @@ class NetBoxAdapter:
 
     def list_devices(self, site: str | None = None) -> list[Device]:
         raise NotImplementedError("NetBoxAdapter.list_devices — implement in B2")
+
+    def list_interfaces(self, device: str) -> list[Interface]:
+        raise NotImplementedError("NetBoxAdapter.list_interfaces — implement with live backend")
 
     def get_topology(self, site: str) -> Topology:
         raise NotImplementedError("NetBoxAdapter.get_topology — implement in B2")

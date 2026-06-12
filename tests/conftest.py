@@ -12,11 +12,18 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.pool import NullPool
 
+# Deliberately NOT derived from DATABASE_URL: tests that assert on table
+# state (empty lists, exact counts) must never run against the dev database,
+# which now holds durable rows. Override with TEST_DATABASE_URL if needed.
+_TEST_DB_DEFAULT = "postgresql://anif:anif_dev@localhost:5432/anif_test"
+
 
 def _test_db_url() -> str:
-    url = os.environ.get("DATABASE_URL", "postgresql://anif:anif_dev@localhost:5432/anif_test")
+    url = os.environ.get("TEST_DATABASE_URL", _TEST_DB_DEFAULT)
     if url.startswith("postgresql://"):
-        url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
+        url = url.replace("postgresql+asyncpg://", "postgresql://").replace(
+            "postgresql://", "postgresql+asyncpg://", 1
+        )
     return url
 
 
@@ -25,10 +32,7 @@ def set_test_env(monkeypatch: pytest.MonkeyPatch) -> None:
     """Set environment variables for all tests."""
     monkeypatch.setenv("ENVIRONMENT", "test")
     monkeypatch.setenv("LOG_LEVEL", "WARNING")
-    monkeypatch.setenv(
-        "DATABASE_URL",
-        os.environ.get("DATABASE_URL", "postgresql://anif:anif_dev@localhost:5432/anif_test"),
-    )
+    monkeypatch.setenv("DATABASE_URL", os.environ.get("TEST_DATABASE_URL", _TEST_DB_DEFAULT))
     monkeypatch.setenv(
         "REDIS_URL",
         os.environ.get("REDIS_URL", "redis://localhost:6379"),
