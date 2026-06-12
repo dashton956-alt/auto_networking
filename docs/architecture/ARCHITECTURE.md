@@ -3,8 +3,8 @@
 > This document is maintained by the `architecture-agent`. Do not edit manually
 > without also updating the relevant `.drawio` diagram files.
 
-**Last updated by:** architecture-agent (post-F4)
-**Platform version:** 0.1.0 — backend phases B1–B8 complete; frontend F1–F4 complete
+**Last updated by:** architecture-agent (post-F5)
+**Platform version:** 0.1.0 — backend phases B1–B8 complete; frontend F1–F5 complete
 
 ---
 
@@ -64,7 +64,7 @@ policy-stage audit writes.
 | `learning` | Implemented | B8 | ANIF-812, ANIF-905 | LearningBroker, learning package approval flow |
 | `monitoring` | Implemented | B4+ | ANIF-401, ANIF-846 | Prometheus governance counters/histograms |
 | `pipeline` | Implemented | B2–B5 | ANIF-305, ANIF-306, ANIF-308 | `/orchestrate` orchestrator |
-| `sot` | Protocol + stubs | — | ANIF-307 | SoT protocol; Nautobot/NetBox/InfraHub adapters raise NotImplementedError |
+| `sot` | Local adapter + stubs | F5 | ANIF-307 | LocalSoTAdapter (YAML inventory, full write-back), `GET /topology`; Nautobot/NetBox/InfraHub adapters still raise NotImplementedError |
 
 **Cross-cutting rules in force:**
 
@@ -102,6 +102,7 @@ policy-stage audit writes.
 | POST | `/override` | ethics |
 | POST | `/council/build-time` · `/runtime` · `/review` (+ decision/timeout) | council |
 | POST | `/learning/packages` (+ approve/reject) | learning |
+| GET | `/topology` | sot |
 | POST | `/webhooks/git` | intent (GitWatcher) |
 
 ---
@@ -154,6 +155,16 @@ Playwright + axe-core for WCAG 2.1 AA audits.
 - Orchestrator decision-stage records now carry the DecisionEngine's
   D-001..D-008 reasoning chain (was dropped; §4.2.2 violation).
 
+### Topology View (F5 — complete)
+
+- `/topology` — SVG graph canvas over `GET /topology`: layered layout by
+  role, nodes coloured by intent write-back status (the intent overlay),
+  legend, accessible parallel device list (keyboard path), device detail
+  card with last-intent link into the audit timeline, and per-interface
+  cards.
+- Backed by `SOT_BACKEND=local` (file inventory) in development; swaps to
+  Nautobot/NetBox/InfraHub via env once those adapters are implemented.
+
 ### Pages
 
 | Page | Status | Phase | Backend Dependency |
@@ -162,7 +173,7 @@ Playwright + axe-core for WCAG 2.1 AA audits.
 | Intent Dashboard | Implemented | F2 | B2 (Intent API) |
 | Approval Queue | Implemented | F3 | B4 (Approval Queue API) |
 | Audit Trail Viewer | Implemented | F4 | B2 (Audit API) |
-| Topology View | Not started | F5 | B5 ✓ ready (SoT adapters still stubbed) |
+| Topology View | Implemented | F5 | B5 + SoT (local adapter) |
 | Risk & Governance | Not started | F6 | B8 ✓ ready |
 
 ---
@@ -216,8 +227,9 @@ All diagrams are in `docs/architecture/diagrams/`. Open with draw.io or diagrams
 
 ## Test Baseline
 
-460 backend tests passing (unit + integration), including real-wiring
+476 backend tests passing (unit + integration), including real-wiring
 regressions for cross-request persistence, full-pipeline orchestration,
-and audit endpoint auth.
+and audit endpoint auth. Tests run against `anif_test` (pinned in
+conftest; `TEST_DATABASE_URL` to override) — never the dev database.
 Integration tests require the Docker Postgres (`anif` / `anif_test` databases).
-Frontend: 9 Playwright axe audits (WCAG 2.1 AA, mocked API) — 0 violations.
+Frontend: 10 Playwright axe audits (WCAG 2.1 AA, mocked API) — 0 violations.
