@@ -5,10 +5,12 @@ from __future__ import annotations
 from typing import Any
 
 import structlog
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from anif_platform.auth import get_api_key
+from anif_platform.council.models import CouncilRecordRow
 from anif_platform.council.schemas import (
     BuildTimeReviewRequest,
     CouncilDecision,
@@ -29,6 +31,38 @@ router = APIRouter(tags=["council"])
 
 def get_db_session() -> AsyncSession:
     raise NotImplementedError("Override via dependency injection")
+
+
+@router.get("/council/sessions", response_model=dict[str, Any])
+async def list_council_sessions(
+    limit: int = Query(20, ge=1, le=100),
+    session: AsyncSession = Depends(get_db_session),
+    _: str = Depends(get_api_key),
+) -> dict[str, Any]:
+    """Recent council sessions, newest first — F6 council decision feed."""
+    total = (await session.execute(select(func.count()).select_from(CouncilRecordRow))).scalar_one()
+    result = await session.execute(
+        select(CouncilRecordRow).order_by(CouncilRecordRow.trigger_timestamp.desc()).limit(limit)
+    )
+    rows = result.scalars().all()
+    return {
+        "total": total,
+        "sessions": [
+            {
+                "council_id": row.council_id,
+                "council_type": row.council_type,
+                "decision": row.decision,
+                "triggered_by": row.triggered_by,
+                "trigger_timestamp": row.trigger_timestamp.isoformat(),
+                "session_close_timestamp": (
+                    row.session_close_timestamp.isoformat() if row.session_close_timestamp else None
+                ),
+                "decision_rationale": row.decision_rationale,
+                "intent_id": row.intent_id,
+            }
+            for row in rows
+        ],
+    }
 
 
 @router.post("/council/build-time", response_model=dict[str, Any])

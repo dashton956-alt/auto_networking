@@ -67,6 +67,8 @@ async def client(db_session: Any) -> AsyncGenerator[AsyncClient, None]:
     from anif_platform.audit.query import AuditQueryService
     from anif_platform.audit.router import get_audit_query_service
     from anif_platform.auth import get_api_key
+    from anif_platform.council.router import get_db_session as council_get_session
+    from anif_platform.ethics.router import get_db_session as ethics_get_session
     from anif_platform.main import app
 
     # Snapshot and restore rather than clear(): main.py installs the
@@ -75,6 +77,8 @@ async def client(db_session: Any) -> AsyncGenerator[AsyncClient, None]:
     saved_overrides = dict(app.dependency_overrides)
     app.dependency_overrides[get_audit_query_service] = lambda: AuditQueryService(db_session)
     app.dependency_overrides[get_api_key] = lambda: "test-key"
+    app.dependency_overrides[council_get_session] = lambda: db_session
+    app.dependency_overrides[ethics_get_session] = lambda: db_session
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         yield c

@@ -15,14 +15,48 @@ from datetime import UTC, datetime
 from typing import Any
 
 import structlog
-from fastapi import APIRouter, Depends, Header
+from fastapi import APIRouter, Depends, Header, Query
 from pydantic import BaseModel
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from anif_platform.auth import get_api_key
+from anif_platform.ethics.models import StrikeRecordRow
 
 log = structlog.get_logger(__name__)
 
 router = APIRouter(tags=["ethics"])
+
+
+def get_db_session() -> AsyncSession:
+    raise NotImplementedError("Override via dependency injection")
+
+
+@router.get("/ethics/strikes", response_model=dict[str, Any])
+async def list_strikes(
+    limit: int = Query(50, ge=1, le=100),
+    session: AsyncSession = Depends(get_db_session),
+    _: str = Depends(get_api_key),
+) -> dict[str, Any]:
+    """Recent agent strikes, newest first — F6 ethics strikes log (ANIF-721 §7)."""
+    total = (await session.execute(select(func.count()).select_from(StrikeRecordRow))).scalar_one()
+    result = await session.execute(
+        select(StrikeRecordRow).order_by(StrikeRecordRow.recorded_at.desc()).limit(limit)
+    )
+    rows = result.scalars().all()
+    return {
+        "total": total,
+        "strikes": [
+            {
+                "strike_id": str(row.strike_id),
+                "agent_id": str(row.agent_id),
+                "intent_id": str(row.intent_id),
+                "reason": row.reason,
+                "recorded_at": row.recorded_at.isoformat(),
+            }
+            for row in rows
+        ],
+    }
 
 
 class OverrideRequest(BaseModel):

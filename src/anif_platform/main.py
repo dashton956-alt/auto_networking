@@ -9,7 +9,8 @@ from contextlib import asynccontextmanager
 from typing import Any
 
 import structlog
-from fastapi import APIRouter, Depends, FastAPI, Request
+from fastapi import APIRouter, Depends, FastAPI, Request, Response
+from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
 from anif_platform.audit.query import AuditQueryService
 from anif_platform.audit.router import get_audit_query_service
@@ -20,6 +21,7 @@ from anif_platform.council.router import get_db_session as council_get_session
 from anif_platform.council.router import router as council_router
 from anif_platform.database import async_session_factory, engine
 from anif_platform.ethics.constraints import ActionTypeValidator
+from anif_platform.ethics.router import get_db_session as ethics_get_session
 from anif_platform.ethics.router import router as override_router
 from anif_platform.execution.executor import ActionExecutor
 from anif_platform.execution.mock_adapter import MockNetworkAdapter
@@ -175,6 +177,7 @@ app.dependency_overrides[exec_get_executor] = _get_session_executor
 app.dependency_overrides[pipeline_get_executor] = _get_session_executor
 app.dependency_overrides[council_get_session] = _get_session_raw
 app.dependency_overrides[learning_get_session] = _get_session_raw
+app.dependency_overrides[ethics_get_session] = _get_session_raw
 app.dependency_overrides[get_sot_adapter_dep] = _get_configured_sot_adapter
 
 
@@ -212,3 +215,11 @@ app.include_router(override_router)
 app.include_router(council_router)
 app.include_router(learning_router)
 app.include_router(sot_router)
+
+
+# Prometheus scrape endpoint (ANIF-401): the compose Prometheus targets
+# platform:8000/metrics. Unauthenticated — counters carry no payload data
+# and the scraper holds no API key.
+@app.get("/metrics", include_in_schema=False)
+def metrics() -> Response:
+    return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
