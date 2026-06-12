@@ -1,0 +1,10 @@
+name: pci_compliant
+category: compliance
+version: "1.0.0"
+rules:
+  - condition: "constraints.encryption:equals:false"
+    action: deny
+    reason: "PCI compliance requires encryption to be true"
+  - condition: "constraints.encryption:not_equals:true"
+    action: deny
+    reason: "PCI compliance requires encryption to be explicitly set to true"

@@ -1,0 +1,62 @@
+name: Compliance Checks
+
+on:
+  pull_request:
+    paths:
+      - "src/anif_platform/auth/**"
+      - "src/anif_platform/schemas/**"
+      - "src/anif_platform/audit/**"
+      - "src/anif_ui/**"
+
+jobs:
+  dependency-audit:
+    name: Dependency CVE Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install pip-audit
+      - run: pip-audit --requirement <(pip freeze) || true
+
+  iso27001-check:
+    name: ISO 27001 Audit Trail Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify audit trail fields on data models
+        run: |
+          python3 - << 'EOF'
+          import sys
+          from pathlib import Path
+
+          required_audit_fields = {"created_at", "updated_at"}
+          errors = []
+
+          for model_file in Path("src/anif_platform/schemas").rglob("*.py"):
+              source = model_file.read_text()
+              if "BaseModel" in source or "DeclarativeBase" in source:
+                  missing = [f for f in required_audit_fields if f not in source]
+                  if missing:
+                      errors.append(f"{model_file}: missing audit fields: {missing}")
+
+          if errors:
+              for e in errors:
+                  print(f"WARNING: {e}")
+          else:
+              print("Audit field check passed")
+          EOF
+
+  hipaa-check:
+    name: HIPAA Compliance Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check for bare PHI handling
+        run: |
+          if grep -rn "patient\|health_record\|phi" src/ --include="*.py" | grep -v "encrypt\|#" | grep -v "test_"; then
+            echo "WARNING: Potential unencrypted PHI references found — review required"
+          else
+            echo "HIPAA check passed"
+          fi

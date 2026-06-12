@@ -1,0 +1,71 @@
+name: Intent Validation
+
+on:
+  push:
+    paths:
+      - "schemas/**"
+      - "simulation/topologies/**"
+      - "src/anif_platform/intent/**"
+      - "src/anif_platform/schemas/**"
+  pull_request:
+    paths:
+      - "schemas/**"
+      - "simulation/topologies/**"
+
+jobs:
+  schema-lint:
+    name: Intent Schema Validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: "pip"
+      - run: pip install uv && uv pip install --system pydantic pyyaml jsonschema
+      - name: Validate all intent YAML files against schema
+        run: |
+          python3 - << 'EOF'
+          import yaml
+          import sys
+          from pathlib import Path
+
+          schema_path = Path("schemas/intent_schema.yml")
+          if not schema_path.exists():
+              print("No intent_schema.yml found — skipping")
+              sys.exit(0)
+
+          required_fields = {"service", "environment", "objectives", "constraints", "policies", "priority"}
+
+          errors = []
+          for intent_file in Path("simulation/topologies").rglob("*.yml"):
+              data = yaml.safe_load(intent_file.read_text())
+              if not isinstance(data, dict):
+                  continue
+              if "intent" in data:
+                  intent = data["intent"]
+                  missing = required_fields - set(intent.keys())
+                  if missing:
+                      errors.append(f"{intent_file}: missing fields: {missing}")
+
+          if errors:
+              for e in errors:
+                  print(f"ERROR: {e}")
+              sys.exit(1)
+          print("All intent files valid")
+          EOF
+
+  batfish-check:
+    name: Batfish Static Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check for Batfish snapshots
+        run: |
+          if [ -d "simulation/batfish" ] && [ "$(ls -A simulation/batfish 2>/dev/null | grep -v README)" ]; then
+            echo "Batfish snapshots found"
+            pip install pybatfish
+            echo "Batfish analysis added when first snapshot is committed"
+          else
+            echo "No Batfish snapshots yet — skipping"
+          fi

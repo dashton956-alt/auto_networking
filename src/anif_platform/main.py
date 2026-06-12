@@ -1,0 +1,225 @@
+"""FastAPI application — ANIF Platform."""
+
+from __future__ import annotations
+
+import asyncio
+import os
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
+from typing import Any
+
+import structlog
+from fastapi import APIRouter, Depends, FastAPI, Request, Response
+from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
+
+from anif_platform.audit.query import AuditQueryService
+from anif_platform.audit.router import get_audit_query_service
+from anif_platform.audit.router import router as audit_router
+from anif_platform.audit.writer import AuditWriter
+from anif_platform.auth import get_api_key
+from anif_platform.council.router import get_db_session as council_get_session
+from anif_platform.council.router import router as council_router
+from anif_platform.database import async_session_factory, engine
+from anif_platform.ethics.constraints import ActionTypeValidator
+from anif_platform.ethics.router import get_db_session as ethics_get_session
+from anif_platform.ethics.router import router as override_router
+from anif_platform.execution.executor import ActionExecutor
+from anif_platform.execution.mock_adapter import MockNetworkAdapter
+from anif_platform.execution.router import get_action_executor as exec_get_executor
+from anif_platform.execution.router import router as execution_router
+from anif_platform.governance.router import get_approval_queue as gov_get_queue
+from anif_platform.governance.router import get_audit_writer as gov_get_writer
+from anif_platform.governance.router import router as governance_router
+from anif_platform.human_loop.expiry import expiry_loop
+from anif_platform.human_loop.queue import ApprovalQueue
+from anif_platform.human_loop.router import get_audit_writer as halt_get_writer
+from anif_platform.human_loop.router import router as human_loop_router
+from anif_platform.intent.git_watcher import GitWatcher
+from anif_platform.intent.registry import IntentRegistry
+from anif_platform.intent.router import get_audit_writer as intent_get_writer
+from anif_platform.intent.router import get_intent_registry as intent_get_registry
+from anif_platform.intent.router import router as intent_router
+from anif_platform.learning.router import get_db_session as learning_get_session
+from anif_platform.learning.router import router as learning_router
+from anif_platform.pipeline.router import get_action_executor as pipeline_get_executor
+from anif_platform.pipeline.router import get_approval_queue as pipeline_get_queue
+from anif_platform.pipeline.router import get_audit_writer as pipeline_get_writer
+from anif_platform.pipeline.router import get_intent_registry as pipeline_get_registry
+from anif_platform.pipeline.router import get_policy_engine as pipeline_get_engine
+from anif_platform.pipeline.router import router as pipeline_router
+from anif_platform.policy.engine import PolicyEngine
+from anif_platform.policy.loader import PolicyLoader
+from anif_platform.policy.router import get_audit_writer as policy_get_writer
+from anif_platform.policy.router import get_intent_registry as policy_get_registry
+from anif_platform.policy.router import get_policy_engine as policy_get_engine
+from anif_platform.policy.router import router as policy_router
+from anif_platform.sot import get_sot_adapter
+from anif_platform.sot.protocol import SoTAdapter
+from anif_platform.sot.router import get_sot_adapter_dep
+from anif_platform.sot.router import router as sot_router
+
+log = structlog.get_logger(__name__)
+
+# Module-level singletons are acceptable here as this is the app entry point.
+# All other modules use dependency injection.
+_policy_engine: PolicyEngine | None = None
+
+
+def _get_policy_engine() -> PolicyEngine:
+    global _policy_engine
+    if _policy_engine is None:
+        policies_dir = os.environ.get("POLICIES_DIR", "policies")
+        _policy_engine = PolicyEngine(PolicyLoader(policies_dir))
+    return _policy_engine
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    log.info("anif_platform_starting")
+    ActionTypeValidator.validate_at_startup()
+
+    # Start GitWatcher if configured
+    mode = os.environ.get("GIT_WATCHER_MODE", "")
+    if mode:
+        async with async_session_factory() as session:
+            registry = IntentRegistry(session)
+            watcher = GitWatcher(registry)
+            await watcher.start()
+            await session.commit()
+            log.info("git_watcher_started", mode=mode)
+
+    expiry_task = asyncio.create_task(expiry_loop(async_session_factory))
+    log.info("ticket_expiry_task_started")
+
+    yield
+
+    expiry_task.cancel()
+    await engine.dispose()
+    log.info("anif_platform_stopped")
+
+
+app = FastAPI(
+    title="ANIF Platform",
+    description="Autonomous Networking & Infrastructure Framework",
+    version="0.1.0",
+    lifespan=lifespan,
+)
+
+
+# ── Per-request dependency factories ─────────────────────────────────────
+#
+# Each mutating factory commits at teardown so business rows staged during
+# the request (intents, tickets, executions, council/learning rows) persist.
+# Audit records do not rely on this: AuditWriter.write() commits inline per
+# ANIF-107 §4.3.1 (durable before the stage returns).
+
+
+async def _get_session_writer(request: Request) -> AsyncGenerator[AuditWriter, None]:
+    async with async_session_factory() as session:
+        yield AuditWriter(session)
+        await session.commit()
+
+
+async def _get_session_registry(request: Request) -> AsyncGenerator[IntentRegistry, None]:
+    async with async_session_factory() as session:
+        yield IntentRegistry(session)
+        await session.commit()
+
+
+async def _get_session_query(request: Request) -> AsyncGenerator[AuditQueryService, None]:
+    async with async_session_factory() as session:
+        yield AuditQueryService(session)
+
+
+async def _get_session_approval_queue(request: Request) -> AsyncGenerator[ApprovalQueue, None]:
+    async with async_session_factory() as session:
+        writer = AuditWriter(session)
+        yield ApprovalQueue(session=session, writer=writer)
+        await session.commit()
+
+
+async def _get_session_executor(
+    request: Request,
+) -> AsyncGenerator[ActionExecutor, None]:
+    async with async_session_factory() as session:
+        writer = AuditWriter(session)
+        adapter = MockNetworkAdapter()
+        yield ActionExecutor(adapter=adapter, session=session, writer=writer)
+        await session.commit()
+
+
+async def _get_session_raw(request: Request) -> AsyncGenerator[None, None]:
+    async with async_session_factory() as session:
+        yield session  # type: ignore[misc]
+        await session.commit()
+
+
+def _get_configured_sot_adapter() -> SoTAdapter:
+    return get_sot_adapter()
+
+
+# ── Dependency overrides ──────────────────────────────────────────────────
+
+app.dependency_overrides[get_audit_query_service] = _get_session_query
+app.dependency_overrides[intent_get_writer] = _get_session_writer
+app.dependency_overrides[intent_get_registry] = _get_session_registry
+app.dependency_overrides[policy_get_writer] = _get_session_writer
+app.dependency_overrides[policy_get_registry] = _get_session_registry
+app.dependency_overrides[policy_get_engine] = _get_policy_engine
+app.dependency_overrides[pipeline_get_writer] = _get_session_writer
+app.dependency_overrides[pipeline_get_registry] = _get_session_registry
+app.dependency_overrides[pipeline_get_engine] = _get_policy_engine
+app.dependency_overrides[gov_get_writer] = _get_session_writer
+app.dependency_overrides[gov_get_queue] = _get_session_approval_queue
+app.dependency_overrides[halt_get_writer] = _get_session_writer
+app.dependency_overrides[pipeline_get_queue] = _get_session_approval_queue
+app.dependency_overrides[exec_get_executor] = _get_session_executor
+app.dependency_overrides[pipeline_get_executor] = _get_session_executor
+app.dependency_overrides[council_get_session] = _get_session_raw
+app.dependency_overrides[learning_get_session] = _get_session_raw
+app.dependency_overrides[ethics_get_session] = _get_session_raw
+app.dependency_overrides[get_sot_adapter_dep] = _get_configured_sot_adapter
+
+
+# ── Webhook endpoint (when GIT_WATCHER_MODE includes webhook) ────────────
+
+webhook_router = APIRouter(tags=["webhooks"])
+
+
+@webhook_router.post("/webhooks/git")
+async def git_webhook(
+    request: Request,
+    _: str = Depends(get_api_key),
+) -> dict[str, Any]:
+    """Receive Git push webhooks and trigger intent detection."""
+    payload = await request.json()
+    async with async_session_factory() as session:
+        registry = IntentRegistry(session)
+        watcher = GitWatcher(registry)
+        await watcher.handle_webhook(payload)
+        await session.commit()
+    return {"status": "accepted"}
+
+
+# ── Mount routers ─────────────────────────────────────────────────────────
+
+app.include_router(audit_router)
+app.include_router(intent_router)
+app.include_router(policy_router)
+app.include_router(pipeline_router)
+app.include_router(webhook_router)
+app.include_router(governance_router)
+app.include_router(human_loop_router)
+app.include_router(execution_router)
+app.include_router(override_router)
+app.include_router(council_router)
+app.include_router(learning_router)
+app.include_router(sot_router)
+
+
+# Prometheus scrape endpoint (ANIF-401): the compose Prometheus targets
+# platform:8000/metrics. Unauthenticated — counters carry no payload data
+# and the scraper holds no API key.
+@app.get("/metrics", include_in_schema=False)
+def metrics() -> Response:
+    return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
