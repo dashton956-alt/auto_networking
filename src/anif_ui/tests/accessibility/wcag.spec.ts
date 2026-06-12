@@ -105,7 +105,107 @@ async function mockApi(page: Page) {
   );
   // Regexes anchored at end-of-path/query: bare globs like "**/api/topology**"
   // also match vite module URLs (/src/api/topology.ts) and break the app.
-  await page.route(/\/api\/audit(\?|$)/, (route) => route.fulfill({ json: AUDIT_RECORDS }));
+  await page.route(/\/api\/audit(\?|$)/, (route) => {
+    const url = new URL(route.request().url());
+    if (url.searchParams.get("stage") === "risk") {
+      return route.fulfill({
+        json: [
+          {
+            record_id: "0a1b2c3d-0000-4000-8000-000000000003",
+            intent_id: INTENT_ID,
+            stage: "risk",
+            timestamp: "2026-06-12T09:00:03Z",
+            outcome: "success",
+            duration_ms: 5,
+            input_summary: {},
+            output_summary: { risk_score: 62, trust_score: 78, safety_decision: "warn" },
+          },
+          {
+            record_id: "0a1b2c3d-0000-4000-8000-000000000013",
+            intent_id: INTENT_ID,
+            stage: "risk",
+            timestamp: "2026-06-12T08:00:03Z",
+            outcome: "success",
+            duration_ms: 4,
+            input_summary: {},
+            output_summary: { risk_score: 21, trust_score: 90, safety_decision: "allow" },
+          },
+        ],
+      });
+    }
+    if (url.searchParams.get("stage") === "governance") {
+      return route.fulfill({
+        json: [
+          {
+            record_id: "0a1b2c3d-0000-4000-8000-000000000004",
+            intent_id: INTENT_ID,
+            stage: "governance",
+            timestamp: "2026-06-12T09:00:04Z",
+            outcome: "escalated",
+            duration_ms: 3,
+            input_summary: {},
+            output_summary: { mode: "manual_review" },
+          },
+          {
+            record_id: "0a1b2c3d-0000-4000-8000-000000000014",
+            intent_id: INTENT_ID,
+            stage: "governance",
+            timestamp: "2026-06-12T08:00:04Z",
+            outcome: "success",
+            duration_ms: 2,
+            input_summary: {},
+            output_summary: { mode: "auto" },
+          },
+        ],
+      });
+    }
+    return route.fulfill({ json: AUDIT_RECORDS });
+  });
+  await page.route(/\/api\/council\/sessions(\?|$)/, (route) =>
+    route.fulfill({
+      json: {
+        total: 2,
+        sessions: [
+          {
+            council_id: "c-1",
+            council_type: "runtime",
+            decision: "approved",
+            triggered_by: "intent execution timeout exceeded",
+            trigger_timestamp: "2026-06-12T09:05:00Z",
+            session_close_timestamp: "2026-06-12T09:08:00Z",
+            decision_rationale: "Risk within tolerance; execution may continue",
+            intent_id: INTENT_ID,
+          },
+          {
+            council_id: "c-2",
+            council_type: "review",
+            decision: "completed",
+            triggered_by: "post-incident review of blocked intent",
+            trigger_timestamp: "2026-06-12T08:00:00Z",
+            session_close_timestamp: null,
+            decision_rationale: null,
+            intent_id: null,
+          },
+        ],
+      },
+    }),
+  );
+  await page.route(/\/api\/ethics\/strikes(\?|$)/, (route) =>
+    route.fulfill({
+      json: {
+        total: 1,
+        strikes: [
+          {
+            strike_id: "s-1",
+            agent_id: "9e107d9d-372b-4b66-8a0e-95f0a1b2c3d4",
+            intent_id: INTENT_ID,
+            reason: "acted outside declared capabilities",
+            recorded_at: "2026-06-12T07:45:00Z",
+          },
+        ],
+      },
+    }),
+  );
   await page.route(/\/api\/topology(\?|$)/, (route) =>
     route.fulfill({
       json: {
@@ -231,6 +331,14 @@ test.describe("WCAG 2.1 AA audit", () => {
     // Select a different device via the accessible list, then audit.
     await page.getByRole("button", { name: /leaf-1/ }).click();
     await page.getByRole("heading", { name: "leaf-1" }).waitFor();
+    await expectNoViolations(page);
+  });
+
+  test("governance dashboard has no accessibility violations", async ({ page }) => {
+    await mockApi(page);
+    await page.goto("/governance");
+    await page.getByText("Live risk scores").waitFor();
+    await page.getByText("acted outside declared capabilities").waitFor();
     await expectNoViolations(page);
   });
 
