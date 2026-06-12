@@ -3,8 +3,8 @@
 > This document is maintained by the `architecture-agent`. Do not edit manually
 > without also updating the relevant `.drawio` diagram files.
 
-**Last updated by:** architecture-agent (post-F5)
-**Platform version:** 0.1.0 — backend phases B1–B8 complete; frontend F1–F5 complete
+**Last updated by:** architecture-agent (post-F6)
+**Platform version:** 0.1.0 — **all build-order phases complete** (backend B1–B8, frontend F1–F6)
 
 ---
 
@@ -100,8 +100,11 @@ policy-stage audit writes.
 | POST | `/rollback/{intent_id}` | execution |
 | POST | `/execution/{intent_id}/halt` | human_loop |
 | POST | `/override` | ethics |
+| GET | `/council/sessions` | council |
 | POST | `/council/build-time` · `/runtime` · `/review` (+ decision/timeout) | council |
+| GET | `/ethics/strikes` | ethics |
 | POST | `/learning/packages` (+ approve/reject) | learning |
+| GET | `/metrics` (Prometheus, unauthenticated) | monitoring |
 | GET | `/topology` | sot |
 | POST | `/webhooks/git` | intent (GitWatcher) |
 
@@ -165,6 +168,15 @@ Playwright + axe-core for WCAG 2.1 AA audits.
 - Backed by `SOT_BACKEND=local` (file inventory) in development; swaps to
   Nautobot/NetBox/InfraHub via env once those adapters are implemented.
 
+### Risk & Governance Dashboard (F6 — complete)
+
+- `/governance` — four panels, auto-refreshing every 15 s: live risk
+  scores (latest risk-stage evaluations), governance activity (mode-split
+  meters over recent evaluations), council decision feed
+  (`/council/sessions`), ethics strikes log (`/ethics/strikes`).
+- Prometheus counters exposed at `/metrics` for the compose
+  Prometheus/Grafana stack (ANIF-401).
+
 ### Pages
 
 | Page | Status | Phase | Backend Dependency |
@@ -174,7 +186,7 @@ Playwright + axe-core for WCAG 2.1 AA audits.
 | Approval Queue | Implemented | F3 | B4 (Approval Queue API) |
 | Audit Trail Viewer | Implemented | F4 | B2 (Audit API) |
 | Topology View | Implemented | F5 | B5 + SoT (local adapter) |
-| Risk & Governance | Not started | F6 | B8 ✓ ready |
+| Risk & Governance | Implemented | F6 | B8 (Councils + Observability) |
 
 ---
 
@@ -227,9 +239,21 @@ All diagrams are in `docs/architecture/diagrams/`. Open with draw.io or diagrams
 
 ## Test Baseline
 
-476 backend tests passing (unit + integration), including real-wiring
+482 backend tests passing (unit + integration), including real-wiring
 regressions for cross-request persistence, full-pipeline orchestration,
 and audit endpoint auth. Tests run against `anif_test` (pinned in
 conftest; `TEST_DATABASE_URL` to override) — never the dev database.
 Integration tests require the Docker Postgres (`anif` / `anif_test` databases).
-Frontend: 10 Playwright axe audits (WCAG 2.1 AA, mocked API) — 0 violations.
+Frontend: 11 Playwright axe audits (WCAG 2.1 AA, mocked API) — 0 violations.
+
+## Known Gaps (post-build-order backlog)
+
+- Nautobot/NetBox/InfraHub SoT adapters are stubs — only the local
+  file-backed adapter is implemented.
+- No production DB-backed strike writer: StrikeService is in-memory
+  (test-only); `/ethics/strikes` reads the durable table, which only
+  receives rows once the writer lands (ANIF-721 §7.2).
+- API auth is the X-API-Key placeholder; X.509/JWT gateway wiring
+  (ANIF-843) not yet connected to `agents/certificate.py`.
+- CI unit-test job has no Postgres service, but DB-backed unit tests
+  require one — workflow needs a service container or test split.
