@@ -8,12 +8,13 @@ import IntentListPage from "@/pages/IntentListPage";
 import IntentSubmitPage from "@/pages/IntentSubmitPage";
 import IntentTimelinePage from "@/pages/IntentTimelinePage";
 import TicketReviewPage from "@/pages/TicketReviewPage";
+import TopologyPage from "@/pages/TopologyPage";
 
 function PlaceholderPage({ title }: { title: string }) {
   return (
     <div>
       <h1 className="text-2xl font-bold text-chrome-900">{title}</h1>
-      <p className="mt-2 text-sm text-chrome-600">Implementation pending — coming in F5–F6.</p>
+      <p className="mt-2 text-sm text-chrome-600">Implementation pending — coming in F6.</p>
     </div>
   );
 }
@@ -52,7 +53,7 @@ export default function App() {
       />
       <Route
         path="/topology"
-        element={<Shell title="Network Topology"><PlaceholderPage title="F5 Topology View" /></Shell>}
+        element={<Shell title="Network Topology"><TopologyPage /></Shell>}
       />
       <Route
         path="/governance"

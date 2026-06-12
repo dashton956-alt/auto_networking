@@ -103,7 +103,56 @@ async function mockApi(page: Page) {
   await page.route(`**/api/audit/${INTENT_ID}/verify`, (route) =>
     route.fulfill({ json: { valid: true, broken_at: null, record_count: 4 } }),
   );
-  await page.route("**/api/audit?**", (route) => route.fulfill({ json: AUDIT_RECORDS }));
+  // Regexes anchored at end-of-path/query: bare globs like "**/api/topology**"
+  // also match vite module URLs (/src/api/topology.ts) and break the app.
+  await page.route(/\/api\/audit(\?|$)/, (route) => route.fulfill({ json: AUDIT_RECORDS }));
+  await page.route(/\/api\/topology(\?|$)/, (route) =>
+    route.fulfill({
+      json: {
+        site: "lab-1",
+        devices: [
+          {
+            name: "spine-1",
+            role: "spine",
+            platform: "frr",
+            primary_ip: "10.0.0.1",
+            tags: ["intent:abc"],
+            custom_fields: {
+              intent_status: "success",
+              last_intent_id: INTENT_ID,
+              intent_applied_at: "2026-06-11T09:00:00Z",
+            },
+            interfaces: [
+              { name: "eth1", ip_address: "10.1.1.0/31", tags: [] },
+              { name: "eth2", ip_address: "10.1.2.0/31", tags: ["intent:abc"] },
+            ],
+          },
+          {
+            name: "leaf-1",
+            role: "leaf",
+            platform: "frr",
+            primary_ip: "10.0.0.11",
+            tags: [],
+            custom_fields: { intent_status: "failed" },
+            interfaces: [{ name: "eth1", ip_address: "10.1.1.1/31", tags: [] }],
+          },
+          {
+            name: "host-1",
+            role: "host",
+            platform: "linux",
+            primary_ip: null,
+            tags: [],
+            custom_fields: {},
+            interfaces: [],
+          },
+        ],
+        connections: [
+          ["spine-1", "leaf-1"],
+          ["leaf-1", "host-1"],
+        ],
+      },
+    }),
+  );
 }
 
 async function expectNoViolations(page: Page) {
@@ -172,6 +221,16 @@ test.describe("WCAG 2.1 AA audit", () => {
     await page.goto(`/audit/${INTENT_ID}`);
     await page.getByText("Hash chain verified").waitFor();
     await page.getByRole("button", { name: "Show reasoning" }).first().click();
+    await expectNoViolations(page);
+  });
+
+  test("topology page has no accessibility violations", async ({ page }) => {
+    await mockApi(page);
+    await page.goto("/topology");
+    await page.getByRole("img", { name: /Network topology for site lab-1/ }).waitFor();
+    // Select a different device via the accessible list, then audit.
+    await page.getByRole("button", { name: /leaf-1/ }).click();
+    await page.getByRole("heading", { name: "leaf-1" }).waitFor();
     await expectNoViolations(page);
   });
 
